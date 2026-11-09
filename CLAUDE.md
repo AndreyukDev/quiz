@@ -89,6 +89,19 @@
   - **Stream API и generics глубже** (в эти блоки или отдельный `java-functional`): `groupingBy`/`partitioningBy` + downstream, `flatMap`/`mapMulti`, `reduce` и identity, `teeing`, примитивные стримы; Gatherers (JEP 485, финал в 24 — отметить для 25); bridge-методы, `<T extends Comparable<? super T>>`, `@SafeVarargs`, capture helper; строки: суррогатные пары (`length()` vs `codePoints()`), text blocks.
 - Тяжёлую генерацию блоков запускать из `claude` CLI по подписке, а не через agent.py (API).
 
+#### Вариант А — расширять ядро
+Отдельные блоки `java-lang`, `java-collections`, functional — как перечислено выше.
+
+#### Вариант Б — приоритет на то, что реально спрашивают у senior (не выбран, решить после обкатки)
+- Сомнение хозяина: многое из варианта А — викторина. Кеш `Integer`, `byte += 1`, `-0.0`, перегрузка с varargs, bridge-методы, capture helper, Gatherers — уровень скрининга, junior/middle или экзотика.
+- На senior-собеседованиях вес на: concurrency (JMM, volatile, CompletableFuture, virtual threads), Spring (прокси, `@Transactional` и self-invocation), БД (изоляция, блокировки, индексы, N+1), JVM (GC, утечки, OOM в проде), system design (идемпотентность, outbox, кэши, Kafka). Из core хватает уже покрытого.
+- Критерий отбора вопроса: знание предотвращает реальный баг в проде или объясняет, почему устроено именно так.
+- План Б:
+  1. Отдельные `java-lang` и `java-collections` не делать.
+  2. В `java-core` добавить вторую порцию из 10–15 вопросов, прошедших критерий: вызов переопределённого метода из конструктора, default-методы и «ромб», `LinkedHashMap` как LRU, `PriorityQueue`, `groupingBy`/downstream, `obj::m` с NPE и т. п.
+  3. Следующими блоками — concurrency → spring → persistence, затем jvm-gc и system-design.
+  4. По итогам обкатки, возможно, выкинуть из `java-core` пару викторинных вопросов.
+
 ## Порядок работы
 1. Каркас: `index.html` (UI, Лейтнер, `localStorage`, экспорт/импорт, статистика, подсветка), PWA, схема и валидатор, скрипт сборки. 3–4 тестовых вопроса всех типов.
 2. Блок `java-core`: темы → вопросы → прогон сниппетов → проверка агентом-противником → правки.
