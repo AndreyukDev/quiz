@@ -101,6 +101,11 @@
   2. В `java-core` добавить вторую порцию из 10–15 вопросов, прошедших критерий: вызов переопределённого метода из конструктора, default-методы и «ромб», `LinkedHashMap` как LRU, `PriorityQueue`, `groupingBy`/downstream, `obj::m` с NPE и т. п.
   3. Следующими блоками — concurrency → spring → persistence, затем jvm-gc и system-design.
   4. По итогам обкатки, возможно, выкинуть из `java-core` пару викторинных вопросов.
+- **Уточнение по реальному собесу** (разбор — `docs/real-interview.md` — локальный, в `.gitignore`): вариант Б подтверждается, викторин там нет вовсе, весь собес практический, главный блок — ревью чужого кода.
+  - Порядок блоков: **spring** (прокси, self-invocation, propagation, dirty checking, LazyInit, `@Async` и контекст) → **persistence/postgres** (индексы и левый префикс, частичный/уникальный индекс, EXPLAIN, изоляция, блокировки, Liquibase, SQL-ловушки: `NOT IN` + NULL, `BETWEEN` по timestamp, `LEFT JOIN` + `WHERE`, N×M) → **concurrency** практическая (CHM, состояние в синглтоне, deadlock, volatile, без StampedLock/LongAdder) → **code-review** (сквозной блок «найди дефект» на Java и SQL: synchronized + транзакция, check-then-act, внешний вызов в транзакции, идемпотентность ретраев, машина состояний). System design и Kafka — позже.
+  - Вид карточки **«найди дефект»**: 15–30 строк кода и вопрос «что сломается в проде?», через `mcq` или `recall` с `code`. Разбор по лестнице: заметил → последствие → фикс.
+  - Вторая порция `java-core`: `toMap` против `groupingBy`, HashSet/TreeSet/LinkedHashSet, сложность операций HashMap.
+  - Материалы собеса — внутренний документ интервьюера: брать темы и формат, дословно не копировать.
 
 ## Порядок работы
 1. Каркас: `index.html` (UI, Лейтнер, `localStorage`, экспорт/импорт, статистика, подсветка), PWA, схема и валидатор, скрипт сборки. 3–4 тестовых вопроса всех типов.
