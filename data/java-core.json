@@ -1,0 +1,1821 @@
+[
+  {
+    "id": "java-core-hashmap-treeify-01",
+    "block": "java-core",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Когда бакет `HashMap` превращается из связного списка в красно-чёрное дерево?",
+    "options": [
+      "Когда цепочка превышает `TREEIFY_THRESHOLD` (8) и ёмкость таблицы ≥ `MIN_TREEIFY_CAPACITY` (64); при меньшей ёмкости таблица вместо этого расширяется",
+      "Как только в бакете оказывается больше 8 элементов, независимо от ёмкости таблицы",
+      "Когда `size` превышает `capacity * loadFactor`",
+      "Только если ключи реализуют `Comparable`; иначе цепочка растёт без ограничений"
+    ],
+    "answer": 0,
+    "explanation": "В `putVal` при длинной цепочке вызывается `treeifyBin`, но тот при `table.length < 64` делает `resize()` вместо дерева: в маленькой таблице длинная цепочка — скорее признак тесноты, чем плохих хешей.\nОбратно в список бакет превращается при resize, если в половине осталось ≤ 6 узлов (`UNTREEIFY_THRESHOLD`), а также при удалении, когда дерево становится слишком маленьким.\n`Comparable` не обязателен: без него порядок в дереве задаёт `tieBreakOrder` (имя класса, `identityHashCode`), просто поиск может обходить оба поддерева. Порог по `loadFactor` — условие resize, а не treeify.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      },
+      {
+        "title": "JEP 180: Handle Frequent HashMap Collisions with Balanced Trees",
+        "url": "https://openjdk.org/jeps/180"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-mutable-key-01",
+    "block": "java-core",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> key = new ArrayList<>(List.of(1));",
+        "Map<List<Integer>, String> map = new HashMap<>();",
+        "map.put(key, \"v\");",
+        "key.add(2);",
+        "System.out.println(map.get(key) + \" \" + map.containsKey(List.of(1)) + \" \" + map.size());"
+      ]
+    },
+    "options": [
+      "null false 1",
+      "v false 1",
+      "null true 1",
+      "v true 1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "null false 1"
+    },
+    "explanation": "Узел хранит хеш, вычисленный при `put`. После `key.add(2)` `key.hashCode()` другой, и `get(key)` ищет не там. Даже в том же бакете узел отсеялся бы сравнением сохранённого хеша.\n`List.of(1)` даёт старый хеш, но `equals` с изменённым `[1, 2]` уже ложен. Запись осталась в мапе «потерянной»: `size()` = 1.\nМораль: поля ключа, участвующие в `equals`/`hashCode`, не должны меняться, пока ключ лежит в мапе.",
+    "sources": [
+      {
+        "title": "Javadoc: Map (про изменяемые ключи)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-power-of-two-01",
+    "block": "java-core",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему ёмкость `HashMap` всегда степень двойки и зачем `hash()` делает `h ^ (h >>> 16)`?",
+    "answer_text": "Индекс бакета — `(n - 1) & hash`: это дешевле `%` и корректно только при `n` = 2^k. Но тогда индекс зависит лишь от младших битов хеша, и ключи, хеши которых различаются только старшими битами, сыпались бы в один бакет. Поэтому `hash()` подмешивает старшие 16 бит в младшие.\n\nБонус при resize: ёмкость удваивается, и каждый узел либо остаётся на индексе `i`, либо переезжает на `i + oldCap` — решает один бит `hash & oldCap`. Хеши не пересчитываются, цепочка делится на две с сохранением порядка.",
+    "explanation": "Ключевое: `&` вместо `%` → важны только младшие биты → их надо «перемешать» со старшими. И дешёвый resize.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-chm-null-01",
+    "block": "java-core",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "tf",
+    "level": "senior",
+    "question": "`ConcurrentHashMap`, как и `HashMap`, допускает один `null`-ключ и `null`-значения.",
+    "answer": false,
+    "explanation": "`ConcurrentHashMap` запрещает `null` и в ключах, и в значениях — будет NPE (как и в `Hashtable`).\nПричина, которую называет Дуг Ли (автор класса), — двусмысленность: в `HashMap` ответ `get(k) == null` можно уточнить через `containsKey`, а в конкурентной мапе между двумя вызовами состояние может измениться. Без null ответ `null` из `get` однозначно значит «ключа нет».",
+    "sources": [
+      {
+        "title": "Javadoc: ConcurrentHashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html"
+      },
+      {
+        "title": "Doug Lea, lambda-libs-spec-experts (2012): гонка containsKey/get при null",
+        "url": "https://mail.openjdk.org/pipermail/lambda-libs-spec-experts/2012-December/000669.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-penultimate-01",
+    "block": "java-core",
+    "topic": "ConcurrentModification",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"a\", \"b\", \"c\"));",
+        "for (String s : list) {",
+        "    if (s.equals(\"b\")) list.remove(s);",
+        "}",
+        "System.out.println(list);"
+      ]
+    },
+    "options": [
+      "[a, c]",
+      "ConcurrentModificationException",
+      "[a, b, c]",
+      "[a]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[a, c]"
+    },
+    "explanation": "for-each развёрнут в `Iterator`. После удаления `\"b\"` (предпоследний элемент) размер стал 2, и курсор итератора тоже 2. `hasNext()` (`cursor != size`) возвращает `false`, и цикл завершается до `next()`, где проверяется `modCount`.\nУдали `\"a\"` — получишь `ConcurrentModificationException`. Fail-fast — это best-effort диагностика, а не гарантия. Правильно: `list.removeIf(...)` или `iterator.remove()`.",
+    "sources": [
+      {
+        "title": "Javadoc: ArrayList (fail-fast итераторы)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html"
+      },
+      {
+        "title": "Javadoc: ConcurrentModificationException",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html"
+      },
+      {
+        "title": "OpenJDK 21: ArrayList.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/ArrayList.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-cow-snapshot-01",
+    "block": "java-core",
+    "topic": "ConcurrentModification",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new CopyOnWriteArrayList<>(List.of(1, 2, 3));",
+        "for (Integer i : list) {",
+        "    if (i == 1) list.add(4);",
+        "    System.out.print(i + \" \");",
+        "}",
+        "System.out.println(list.size());"
+      ]
+    },
+    "options": [
+      "1 2 3 4",
+      "1 2 3 4 4",
+      "ConcurrentModificationException",
+      "1 2 3 3"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1 2 3 4"
+    },
+    "explanation": "Итератор `CopyOnWriteArrayList` работает по снимку массива на момент своего создания: изменения во время обхода он не видит и CME не бросает. Цикл печатает `1 2 3`, затем размер — 4.\nКаждая запись копирует массив целиком, поэтому COW хорош для редко меняющихся и часто читаемых списков (например, слушателей) и плох при частых записях. Изменяющие операции самого итератора (`remove`, `set`, `add`) не поддерживаются — `UnsupportedOperationException`.",
+    "sources": [
+      {
+        "title": "Javadoc: CopyOnWriteArrayList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CopyOnWriteArrayList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-structural-01",
+    "block": "java-core",
+    "topic": "ConcurrentModification",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Идёт обход `for (var e : map.entrySet())` по `HashMap`. Какая операция в теле цикла **не** является структурной модификацией и не ломает итератор?",
+    "options": [
+      "`map.put(k, v)`, где ключ `k` уже есть в мапе",
+      "`map.put(k, v)` с новым ключом",
+      "`map.remove(k)` для другого существующего ключа",
+      "`map.computeIfAbsent(k, f)` для отсутствующего ключа, `f` возвращает не `null`"
+    ],
+    "answer": 0,
+    "explanation": "Структурная модификация — это добавление или удаление отображений. Замена значения у существующего ключа ею не является и `modCount` не меняет. Поэтому `put` по существующему ключу (как и `entry.setValue`) безопасен.\nДобавление или удаление других ключей, как правило, приведёт к CME на следующем `next()` (fail-fast — best-effort). Для удаления текущего элемента — `iterator.remove()`, для массовых правок — `entrySet().removeIf` или `replaceAll`.",
+    "sources": [
+      {
+        "title": "Javadoc: HashMap (structural modification)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-listof-contains-null-01",
+    "block": "java-core",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> a = Arrays.asList(\"x\", \"y\");",
+        "List<String> b = List.of(\"x\", \"y\");",
+        "System.out.println(a.contains(null));",
+        "System.out.println(b.contains(null));"
+      ]
+    },
+    "options": [
+      "false, затем NullPointerException",
+      "false\nfalse",
+      "NullPointerException на первом println",
+      "false, затем UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Неизменяемые коллекции из `List.of`/`Set.of`/`Map.of` не просто запрещают null-элементы: у них и `contains(null)` бросает NPE. Javadoc `Collection.contains` это разрешает — NPE там помечен как «optional».\n`Arrays.asList` — обёртка над массивом, null допускает и честно отвечает `false`. Ловушка при механической замене `Arrays.asList` на `List.of` в коде, где проверяют `contains(x)` с возможным `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "Javadoc: Collection.contains",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-view-vs-copy-01",
+    "block": "java-core",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> src = new ArrayList<>(List.of(1, 2));",
+        "List<Integer> view = Collections.unmodifiableList(src);",
+        "List<Integer> copy = List.copyOf(src);",
+        "src.add(3);",
+        "System.out.println(view.size() + \" \" + copy.size());"
+      ]
+    },
+    "options": [
+      "3 2",
+      "3 3",
+      "2 2",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "3 2"
+    },
+    "explanation": "`Collections.unmodifiableList` — только вид (view): изменения через него запрещены, но изменения исходного списка он отражает. `List.copyOf` делает настоящий неизменяемый снимок.\nЕсли отдаёшь наружу внутреннее состояние объекта, нужен `copyOf` (или копия + unmodifiable). Иначе «неизменяемая» коллекция поменяется под ногами у клиента.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.unmodifiableList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "Javadoc: List.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-arrays-aslist-01",
+    "block": "java-core",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer[] arr = {1, 2, 3};",
+        "List<Integer> list = Arrays.asList(arr);",
+        "list.set(0, 10);",
+        "System.out.println(arr[0]);",
+        "list.add(4);"
+      ]
+    },
+    "options": [
+      "10, затем UnsupportedOperationException",
+      "1, затем UnsupportedOperationException",
+      "UnsupportedOperationException на set",
+      "10, список становится [10, 2, 3, 4]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "10",
+      "exception": "java.lang.UnsupportedOperationException"
+    },
+    "explanation": "`Arrays.asList` возвращает список фиксированного размера поверх переданного массива. `set` разрешён и пишет прямо в массив (поэтому `arr[0]` стал 10), а `add`/`remove` бросают `UnsupportedOperationException` (реализация по умолчанию из `AbstractList`).\nЭто не `List.of` (там запрещён и `set`) и не `ArrayList`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.asList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "Javadoc: AbstractList.add",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/AbstractList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-reversed-view-01",
+    "block": "java-core",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код (Java 21)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new ArrayList<>(List.of(1, 2, 3));",
+        "List<Integer> rev = list.reversed();",
+        "rev.add(0);",
+        "list.add(4);",
+        "System.out.println(list + \" \" + rev);"
+      ]
+    },
+    "options": [
+      "[0, 1, 2, 3, 4] [4, 3, 2, 1, 0]",
+      "[1, 2, 3, 0, 4] [4, 0, 3, 2, 1]",
+      "[1, 2, 3, 4] [0, 3, 2, 1]",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[0, 1, 2, 3, 4] [4, 3, 2, 1, 0]"
+    },
+    "explanation": "`reversed()` из Sequenced Collections (Java 21, JEP 431) возвращает не копию, а вид в обратном порядке: изменения проходят в обе стороны.\n`add` в конец обратного вида — это вставка в начало исходного списка. Новые элементы исходного списка сразу видны в `rev`. Если исходная коллекция неизменяема, вид тоже не позволит её менять.",
+    "sources": [
+      {
+        "title": "JEP 431: Sequenced Collections",
+        "url": "https://openjdk.org/jeps/431"
+      },
+      {
+        "title": "Javadoc: SequencedCollection.reversed",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/SequencedCollection.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-compare-recall-01",
+    "block": "java-core",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "recall",
+    "level": "senior",
+    "question": "Сравни `List.of(...)`, `Arrays.asList(...)`, `Collections.unmodifiableList(...)`, `stream.toList()` и `collect(Collectors.toList())`: изменяемость, `null`, связь с источником.",
+    "answer_text": "- `List.of` / `List.copyOf` — полностью неизменяемы, `null` запрещён (даже `contains(null)` → NPE), от источника не зависят; value-based — на `==` не полагаться.\n- `Arrays.asList` — фиксированный размер поверх массива: `set` можно (пишет в массив), `add`/`remove` → UOE, `null` можно.\n- `Collections.unmodifiableList` — вид только для чтения; изменения исходного списка видны.\n- `stream.toList()` (16+) — неизменяемый, но `null`-элементы допускает.\n- `Collectors.toList()` — тип, изменяемость и потокобезопасность не гарантированы (на практике `ArrayList`).",
+    "explanation": "Чаще всего путают «вид» и «копию» и забывают, что `List.of` враждебен к `null` даже в `contains`.",
+    "sources": [
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "Javadoc: Stream.toList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+      },
+      {
+        "title": "Javadoc: Collectors.toList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-bigdecimal-sets-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var a = new BigDecimal(\"1.0\");",
+        "var b = new BigDecimal(\"1.00\");",
+        "Set<BigDecimal> hash = new HashSet<>(List.of(a, b));",
+        "Set<BigDecimal> tree = new TreeSet<>(List.of(a, b));",
+        "System.out.println(hash.size() + \" \" + tree.size());"
+      ]
+    },
+    "options": [
+      "2 1",
+      "2 2",
+      "1 1",
+      "1 2"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2 1"
+    },
+    "explanation": "`BigDecimal.equals` учитывает масштаб: `1.0` и `1.00` не равны. `compareTo` сравнивает численно и возвращает 0.\n`HashSet` опирается на `equals`/`hashCode`, `TreeSet` — только на `compareTo` или компаратор. Это хрестоматийный пример натурального порядка, несогласованного с `equals`: `TreeSet` с такими элементами нарушает общий контракт `Set`, сформулированный через `equals`.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-compareto-consistency-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "tf",
+    "level": "senior",
+    "question": "Контракт `Comparable` требует: если `a.compareTo(b) == 0`, то `a.equals(b)` обязано быть `true`.",
+    "answer": false,
+    "explanation": "Javadoc: согласованность натурального порядка с `equals` «настоятельно рекомендуется, но не обязательна». Пример из JDK — `BigDecimal` (`1.0` и `1.00`).\nЦена несогласованности: `TreeSet`/`TreeMap` используют только `compareTo` и ведут себя «странно» относительно контрактов `Set`/`Map`, сформулированных через `equals`. Обязательны же антисимметричность знака, транзитивность и правило: из `x.compareTo(y) == 0` следует одинаковый знак сравнения `x` и `y` с любым `z`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-subtraction-comparator-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Comparator<Integer> cmp = (a, b) -> a - b;",
+        "System.out.println(cmp.compare(Integer.MIN_VALUE, 1) > 0);"
+      ]
+    },
+    "options": [
+      "true",
+      "false",
+      "ArithmeticException: integer overflow",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true"
+    },
+    "explanation": "`Integer.MIN_VALUE - 1` переполняется в `Integer.MAX_VALUE`: целочисленная арифметика в Java молча заворачивается, исключения нет. Компаратор «через вычитание» решает, что минимальный `int` больше единицы, и сортировка ломается — вплоть до `IllegalArgumentException: Comparison method violates its general contract!` из TimSort.\nПравильно: `Integer.compare(a, b)`, `Comparator.naturalOrder()` или `Comparator.comparingInt(...)`.",
+    "sources": [
+      {
+        "title": "JLS §15.18.2 Additive Operators for Numeric Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18.2"
+      },
+      {
+        "title": "Javadoc: Integer.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-without-hashcode-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Класс переопределил `equals`, но не `hashCode`. Два объекта `a` и `b` равны по `equals`, `a` положили в `HashSet`. Что вернёт `set.contains(b)`?",
+    "options": [
+      "Почти наверняка `false`: identity-хеши `a` и `b` разные, до `equals` дело не дойдёт",
+      "`true`: `HashSet` в итоге сравнивает элементы через `equals`",
+      "`true`, если `a` и `b` случайно попали в один бакет: внутри бакета сравнение идёт через `equals`",
+      "Не скомпилируется: `equals` и `hashCode` переопределяются только парой"
+    ],
+    "answer": 0,
+    "explanation": "Контракт `Object.hashCode`: равные по `equals` объекты обязаны иметь равные хеши. `HashMap` (внутри `HashSet`) выбирает бакет по хешу и сравнивает сохранённые хеши, и лишь потом вызывает `equals`.\nДаже в одном бакете узел отсеется сравнением сохранённых хешей. Совпадение самих identity-хешей возможно, поэтому «почти наверняка», а не «всегда» — баг ещё и плавающий. Ни компилятор, ни рантайм контракт не проверяют.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.hashCode / equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-instanceof-getclass-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "recall",
+    "level": "senior",
+    "question": "`instanceof` или `getClass()` в `equals`: в чём компромисс и что ломается с наследниками?",
+    "answer_text": "`instanceof` допускает равенство с наследником. Если наследник добавил своё поле в `equals`, ломается симметрия (`base.equals(sub)` — true, `sub.equals(base)` — false) или транзитивность. Расширить инстанцируемый класс значимым полем и сохранить контракт `equals` в общем случае нельзя (Блох, Effective Java, Item 10).\n\n`getClass() != o.getClass()` контракт сохраняет, но ломает подстановку: прокси (Hibernate, Mockito) и безобидные наследники без новых полей перестают быть равными базовому классу.\n\nПрактика: value-классы делать `final` или `record` и использовать `instanceof`; для расширения — композиция вместо наследования; для JPA-сущностей помнить о прокси.",
+    "explanation": "Ключевое: наследник с новым значимым полем несовместим с контрактом `equals` (симметрия/транзитивность), а `getClass()` платит за это подстановкой Лисков и прокси.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "J. Bloch, Effective Java, 3rd ed., Item 10 (доп.)",
+        "url": "https://www.oreilly.com/library/view/effective-java-3rd/9780134686097/"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-pecs-01",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Нужен метод, копирующий элементы из `src` в `dst`, чтобы работал вызов с `List<Number> dst` и `List<Integer> src`. Какая сигнатура правильная?",
+    "options": [
+      "`<T> void copy(List<? super T> dst, List<? extends T> src)`",
+      "`<T> void copy(List<? extends T> dst, List<? super T> src)`",
+      "`<T> void copy(List<T> dst, List<T> src)`",
+      "`void copy(List<Object> dst, List<?> src)`"
+    ],
+    "answer": 0,
+    "explanation": "PECS: Producer Extends, Consumer Super. `src` отдаёт элементы — `? extends T` (читать как `T` можно, писать нельзя). `dst` принимает — `? super T` (писать `T` можно, читается только `Object`). Так объявлен `Collections.copy`.\nС `List<T>` в обоих местах общий `T` для `List<Number>` и `List<Integer>` не выводится: дженерики инвариантны. `List<Object>` не принимает `List<Number>` по той же причине.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.copy",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-extends-add-01",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> ints = new ArrayList<>();",
+        "List<? extends Number> nums = ints;",
+        "nums.add(1);",
+        "System.out.println(ints);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "[1]",
+      "ClassCastException",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "Для `List<? extends Number>` компилятор не знает точный тип элементов — это может быть `List<Double>`. Поэтому `add` принимает только `null`: capture conversion превращает тип параметра в неизвестный `CAP#1`, и `Integer` к нему не приводится.\nЭто защита от heap pollution ещё на этапе компиляции.",
+    "sources": [
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-heap-pollution-01",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> strings = new ArrayList<>();",
+        "List raw = strings;",
+        "raw.add(42);",
+        "System.out.println(strings.size());",
+        "String s = strings.get(0);"
+      ]
+    },
+    "options": [
+      "1, затем ClassCastException",
+      "ClassCastException на raw.add(42)",
+      "1, и программа завершится без ошибок",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1",
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "Из-за стирания `ArrayList` в рантайме хранит `Object[]` и ничего не знает о `String`: через raw-тип `add(42)` проходит (с unchecked-предупреждением).\nПроверку типа компилятор вставляет в месте использования — `checkcast String` при присваивании результата `get(0)`. Там и падает CCE, далеко от места «отравления». Это heap pollution. Найти виновника помогает `Collections.checkedList`: он бросит исключение сразу при вставке.",
+    "sources": [
+      {
+        "title": "JLS §4.12.2 Variables of Reference Type (heap pollution)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.2"
+      },
+      {
+        "title": "Javadoc: Collections.checkedList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-erasure-clash-01",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему не компилируется класс с двумя методами `void process(List<String> l)` и `void process(List<Integer> l)`?",
+    "options": [
+      "После стирания у обоих сигнатура `process(List)` — конфликт имён (same erasure)",
+      "Перегрузка по generic-параметрам запрещена только для `static` методов",
+      "Ошибка возникает только при вызове `process(null)`, без вызова класс компилируется",
+      "Класс компилируется; конфликт проявится только в рантайме при вызове с raw `List`"
+    ],
+    "answer": 0,
+    "explanation": "После стирания обе сигнатуры — `process(List)`. JLS запрещает в одном типе два метода с одинаковым именем и одинаковым стиранием сигнатур, если ни одна не является подсигнатурой другой (name clash: same erasure).\nЗдесь и дескрипторы в байткоде совпали бы полностью — `(Ljava/util/List;)V`. Но JLS запрещает такую пару даже при разных типах возврата (когда дескрипторы различались бы). Решение — разные имена методов.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.3 Requirements in Overriding and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.3"
+      },
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-generic-array-01",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему нельзя написать `new T[n]` или `new List<String>[10]`, а `new List<?>[10]` можно?",
+    "answer_text": "Массивы ковариантны и реифицированы: массив знает тип своего компонента и при записи проверяет его (`ArrayStoreException`). Дженерики стираются: `List<String>` в рантайме — просто `List`, проверить запись в `List<String>[]` нельзя.\n\nЕсли бы создание было разрешено, через `Object[] arr = lists; arr[0] = List.of(42);` в массив «строковых» списков молча попал бы чужой список — heap pollution без единого предупреждения. Поэтому JLS разрешает создавать массивы только реифицируемых типов. `List<?>` реифицируем: unbounded wildcard ничего не обещает. `T` в рантайме неизвестен вовсе.\n\nОбходы: `(T[]) new Object[n]` (unchecked, наружу не отдавать), `Array.newInstance(clazz, n)`, `List<T>` вместо массива.",
+    "explanation": "Ключевое: массивы реифицированы и проверяют запись в рантайме, а дженерики стёрты — проверить нечем.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §15.10.1 Array Creation Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.10.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-pool-constants-01",
+    "block": "java-core",
+    "topic": "String и пул строк",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String a = \"hello\";",
+        "String b = \"hel\" + \"lo\";",
+        "final String c = \"hel\";",
+        "String d = c + \"lo\";",
+        "String e = \"hel\";",
+        "String f = e + \"lo\";",
+        "System.out.println((a == b) + \" \" + (a == d) + \" \" + (a == f) + \" \" + (a == f.intern()));"
+      ]
+    },
+    "options": [
+      "true true false true",
+      "true false false true",
+      "true true true true",
+      "false false false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true true false true"
+    },
+    "explanation": "Литералы интернируются. `\"hel\" + \"lo\"` — константное выражение, его вычисляет компилятор, результат тоже из пула.\n`c` — `final` с константным инициализатором, то есть константная переменная, поэтому `c + \"lo\"` тоже константа. `e` не `final`: `e + \"lo\"` вычисляется в рантайме и даёт новый объект. `intern()` возвращает каноничный экземпляр из пула.\nТонкость: «эффективно final» для константности не годится — нужен явный `final`.",
+    "sources": [
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      },
+      {
+        "title": "JLS §15.29 Constant Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.29"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-concat-indy-01",
+    "block": "java-core",
+    "topic": "String и пул строк",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Как `javac` (Java 9+) компилирует конкатенацию `\"id=\" + id + \", name=\" + name` с не-константными операндами?",
+    "options": [
+      "В `invokedynamic`, который связывается через `StringConcatFactory`; реализацию склейки определяет JDK при линковке, а не javac",
+      "В цепочку `new StringBuilder().append(...).append(...).toString()`",
+      "В последовательные вызовы `String.concat`, по одному на каждый `+`",
+      "В `String.format` с шаблоном, собранным компилятором"
+    ],
+    "answer": 0,
+    "explanation": "JEP 280 (Java 9) заменил генерацию цепочек `StringBuilder` на `invokedynamic` с бутстрапом `java.lang.invoke.StringConcatFactory`. Реализацию склейки теперь определяет JDK при линковке call site, и её можно улучшать без перекомпиляции кода.\nНо `+=` в цикле по-прежнему создаёт новую строку на каждой итерации — там `StringBuilder` всё ещё нужен.",
+    "sources": [
+      {
+        "title": "JEP 280: Indify String Concatenation",
+        "url": "https://openjdk.org/jeps/280"
+      },
+      {
+        "title": "Javadoc: StringConcatFactory",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/invoke/StringConcatFactory.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-trim-strip-01",
+    "block": "java-core",
+    "topic": "String и пул строк",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String s = \"\\u2003text\\u2003\"; // U+2003 EM SPACE",
+        "System.out.println(s.trim().length() + \" \" + s.strip().length());"
+      ]
+    },
+    "options": [
+      "6 4",
+      "4 4",
+      "6 6",
+      "4 6"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "6 4"
+    },
+    "explanation": "`trim()` убирает символы с кодом ≤ `U+0020` — ASCII-пробел и управляющие. EM SPACE (`U+2003`) больше, поэтому `trim()` его не трогает: длина 6.\n`strip()` (Java 11) использует `Character.isWhitespace` и Unicode-пробелы понимает: длина 4. Но и он не всемогущ: неразрывные пробелы (`U+00A0`, `U+2007`, `U+202F`) `isWhitespace` не считает, и `strip()` их оставит.",
+    "sources": [
+      {
+        "title": "Javadoc: String.trim / strip",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      },
+      {
+        "title": "Javadoc: Character.isWhitespace",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Character.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-pool-intern-recall-01",
+    "block": "java-core",
+    "topic": "String и пул строк",
+    "type": "recall",
+    "level": "senior",
+    "question": "Где в HotSpot живёт пул строк, и стоит ли вручную вызывать `intern()` ради экономии памяти?",
+    "answer_text": "С JDK 7 интернированные строки лежат в обычной куче (раньше — в PermGen) и собираются обычными циклами GC. Сам пул — нативная хеш-таблица; с JDK 11 она конкурентная и сама меняет размер (`-XX:StringTableSize` задаёт начальный).\n\nРучной `intern()` — компромисс: экономит память на дубликатах, но каждый вызов — поиск в глобальной таблице, и её же обходит GC. Обычно лучше свой дедуплицирующий кеш в нужном месте или `-XX:+UseStringDeduplication` (JEP 192, изначально только G1, с JDK 18 — все сборщики): GC сам делает одинаковые строки общими по массиву байтов, не меняя семантику `==`.",
+    "explanation": "Ключевое: пул в куче (с JDK 7) и собирается GC; ручной `intern()` — компромисс, альтернатива — дедупликация силами GC.",
+    "sources": [
+      {
+        "title": "JDK 7 Release Notes (interned strings в куче)",
+        "url": "https://www.oracle.com/java/technologies/javase/jdk7-relnotes.html"
+      },
+      {
+        "title": "JEP 192: String Deduplication in G1",
+        "url": "https://openjdk.org/jeps/192"
+      },
+      {
+        "title": "Javadoc: String.intern",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-array-component-01",
+    "block": "java-core",
+    "topic": "Records",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Data(int[] values) {}",
+        "var a = new Data(new int[]{1, 2});",
+        "var b = new Data(new int[]{1, 2});",
+        "System.out.println(a.equals(b) + \" \" + Arrays.equals(a.values(), b.values()));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "false false",
+      "Не скомпилируется: компонент записи не может быть массивом"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "Сгенерированный `equals` записи сравнивает ссылочные компоненты через `Objects.equals` — для массивов это сравнение ссылок. Содержимое равно, но массивы — разные объекты.\nК тому же массив в record ломает неизменяемость: аксессор отдаёт ссылку на тот же массив. Лечится переопределением `equals`/`hashCode`/`toString` и защитными копиями — или `List<Integer>` вместо массива.",
+    "sources": [
+      {
+        "title": "Javadoc: Record.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      },
+      {
+        "title": "JLS §8.10.3 Record Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-compact-ctor-01",
+    "block": "java-core",
+    "topic": "Records",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что можно делать в компактном каноническом конструкторе `record User(String name) { User { ... } }`?",
+    "options": [
+      "Проверить и переприсвоить параметр (`name = name.strip();`) — поле присвоится из него автоматически после тела",
+      "Присвоить поле явно: `this.name = name.strip();`",
+      "Делегировать другому конструктору через `this(...)`",
+      "Ничего из перечисленного: компактный конструктор допустим, только если в записи нет других конструкторов"
+    ],
+    "answer": 0,
+    "explanation": "В компактном конструкторе параметры объявлены неявно; после его тела поля присваиваются из них автоматически. Значит, параметр можно проверить и переприсвоить (`name = name.strip();`).\nПрисваивать полю записи в теле компактного конструктора — ошибка компиляции. Канонический конструктор не может вызывать `this(...)`. Дополнительные (неканонические) конструкторы объявлять можно, но они обязаны начинаться с `this(...)`.",
+    "sources": [
+      {
+        "title": "JLS §8.10.4 Record Constructor Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.4"
+      },
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-extends-01",
+    "block": "java-core",
+    "topic": "Records",
+    "type": "tf",
+    "level": "senior",
+    "question": "Record может наследоваться от абстрактного класса, если не добавляет полей экземпляра.",
+    "answer": false,
+    "explanation": "Прямой суперкласс записи — всегда `java.lang.Record`; `extends` в объявлении записи запрещён. Запись неявно `final`, от неё тоже нельзя наследоваться.\nРеализовывать интерфейсы можно — так записи и становятся листьями sealed-иерархий. Дополнительные поля экземпляра объявлять нельзя, статические — можно.",
+    "sources": [
+      {
+        "title": "JLS §8.10 Record Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10"
+      },
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-vs-lombok-recall-01",
+    "block": "java-core",
+    "topic": "Records",
+    "type": "recall",
+    "level": "senior",
+    "question": "Чем `record` по существу отличается от `final`-класса с Lombok `@Value`, кроме краткости?",
+    "answer_text": "Состояние записи — это ровно её компоненты, и язык это гарантирует:\n- скрытых полей экземпляра и наследования нет; аксессоры, `equals`, `hashCode` и `toString` выводятся из компонентов;\n- деконструкция: record patterns (`o instanceof Point(var x, var y)`, Java 21) работают только с записями;\n- сериализация: запись восстанавливается через канонический конструктор, поэтому инварианты из конструктора проверяются и при десериализации;\n- рефлексия знает о компонентах: `Class.getRecordComponents()`.\n\nЦена: нет ленивых или вычисляемых полей экземпляра, нельзя сделать JPA-сущностью (класс сущности не может быть `final`, нужны no-arg конструктор и не-final поля), а глубокая неизменяемость (массивы, коллекции) — на тебе.",
+    "explanation": "Ключевое: record — языковая семантика «прозрачного носителя данных», и на неё опираются паттерны, сериализация и рефлексия.",
+    "sources": [
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      },
+      {
+        "title": "Javadoc: Record",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      },
+      {
+        "title": "Java Object Serialization Spec: Serialization of Records",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/specs/serialization/serial-arch.html#serialization-of-records"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-permitted-01",
+    "block": "java-core",
+    "topic": "Sealed",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какое требование к прямому наследнику, перечисленному в `permits` sealed-класса, верно?",
+    "options": [
+      "Он обязан быть `final`, `sealed` или `non-sealed` (record уже неявно `final`)",
+      "Он должен находиться в том же исходном файле",
+      "Он должен быть `record` или `enum`",
+      "Он должен лежать в том же пакете, даже если sealed-класс в именованном модуле"
+    ],
+    "answer": 0,
+    "explanation": "Каждый разрешённый наследник явно выбирает, как продолжается иерархия: `final` — закрыта, `sealed` — закрыта своим списком, `non-sealed` — снова открыта. Запись неявно `final`, поэтому ей модификатор не нужен.\nВ именованном модуле наследники могут лежать в других пакетах того же модуля; в безымянном — только в том же пакете. Один файл нужен, лишь когда `permits` опущен: тогда наследники выводятся из этой единицы компиляции.",
+    "sources": [
+      {
+        "title": "JLS §8.1.1.2 sealed, non-sealed, and final Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.2"
+      },
+      {
+        "title": "JLS §8.1.6 Permitted Direct Subclasses",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.6"
+      },
+      {
+        "title": "JEP 409: Sealed Classes",
+        "url": "https://openjdk.org/jeps/409"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-exhaustive-switch-01",
+    "block": "java-core",
+    "topic": "Sealed",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`sealed interface Shape permits Circle, Square`. Чем `switch (shape) { case Circle c -> …; case Square s -> …; }` без `default` лучше варианта с `default`?",
+    "options": [
+      "Добавление нового наследника в `permits` сломает компиляцию всех таких switch — ни один случай не забудется",
+      "Он быстрее: без `default` JIT строит таблицу переходов",
+      "Без `default` switch не нужно перекомпилировать при добавлении наследника",
+      "Разницы нет: новый наследник без перекомпиляции switch в обоих случаях молча уйдёт в ветку по умолчанию"
+    ],
+    "answer": 0,
+    "explanation": "Switch по sealed-типу, перечисляющий всех наследников, исчерпывающий, и `default` не нужен. Главная выгода — компилятор становится чек-листом: добавил `Triangle` в `permits`, и каждый такой switch перестал компилироваться. С `default` новый тип молча ушёл бы в ветку по умолчанию.\nЕсли иерархию поменяли и перекомпилировали без этого switch, в рантайме он бросит `MatchException` (Java 21): javac сам вставляет такой синтетический `default`. `null` по-прежнему даёт NPE, если нет `case null`.",
+    "sources": [
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      },
+      {
+        "title": "JLS §14.11.1.1 Exhaustive Switch Blocks",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.1.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-eval-01",
+    "block": "java-core",
+    "topic": "Sealed",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    sealed interface Expr permits Num, Add, Neg {}",
+        "    record Num(int v) implements Expr {}",
+        "    record Add(Expr l, Expr r) implements Expr {}",
+        "    record Neg(Expr e) implements Expr {}",
+        "",
+        "    static int eval(Expr e) {",
+        "        return switch (e) {",
+        "            case Num n -> n.v();",
+        "            case Add(var l, var r) -> eval(l) + eval(r);",
+        "            case Neg(Num(var v)) -> -v;",
+        "            case Neg(var inner) -> -eval(inner);",
+        "        };",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(eval(new Add(new Num(2), new Neg(new Add(new Num(3), new Num(4))))));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "-5",
+      "9",
+      "5",
+      "Не скомпилируется: switch не исчерпывающий без default"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-5"
+    },
+    "explanation": "`Add(2, Neg(Add(3, 4)))` = 2 + −(3 + 4) = −5. Внутренний `Neg` содержит не `Num`, поэтому срабатывает `case Neg(var inner)`.\nSwitch исчерпывающий без `default`: `Expr` sealed, а `case Neg(var inner)` покрывает все `Neg`. Порядок важен: более узкий `Neg(Num(var v))` стоит перед общим — наоборот было бы ошибкой доминирования.",
+    "sources": [
+      {
+        "title": "JEP 440: Record Patterns",
+        "url": "https://openjdk.org/jeps/440"
+      },
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-why-recall-01",
+    "block": "java-core",
+    "topic": "Sealed",
+    "type": "recall",
+    "level": "senior",
+    "question": "Зачем sealed-классы, если уже есть `final` и package-private конструкторы?",
+    "answer_text": "`final` запрещает наследование вовсе, package-private конструктор ограничивает его пакетом, но ни то ни другое не даёт компилятору полного списка наследников. Sealed делает иерархию закрытой и известной:\n- исчерпывающие `switch` и паттерны без `default` — компилятор проверяет, что разобраны все случаи;\n- публичный интерфейс можно отдать наружу, не разрешая чужих реализаций (раньше — только документацией; у классов был package-private конструктор);\n- алгебраические типы данных: sum types (sealed) + product types (records).\n\n`non-sealed` позволяет снова открыть отдельную ветку иерархии.",
+    "explanation": "Ключевое: sealed сообщает компилятору полный список наследников — это даёт исчерпывающие switch и алгебраические типы.",
+    "sources": [
+      {
+        "title": "JEP 409: Sealed Classes",
+        "url": "https://openjdk.org/jeps/409"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-switch-null-01",
+    "block": "java-core",
+    "topic": "Pattern matching",
+    "type": "tf",
+    "level": "senior",
+    "question": "Если в `switch (obj)` с паттернами нет `case null`, а `obj == null`, управление уйдёт в `default`.",
+    "answer": false,
+    "explanation": "Без `case null` switch по-прежнему бросает `NullPointerException` при null-селекторе: `default` null не ловит — ради совместимости со старым поведением switch.\nЧтобы обработать null, нужен явный `case null ->` или совмещённый `case null, default ->`.",
+    "sources": [
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      },
+      {
+        "title": "JLS §14.11.3 Execution of a switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-dominance-01",
+    "block": "java-core",
+    "topic": "Pattern matching",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Object o = 42;",
+        "String r = switch (o) {",
+        "    case Integer i -> \"int\";",
+        "    case Integer i when i > 10 -> \"big\";",
+        "    default -> \"other\";",
+        "};",
+        "System.out.println(r);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "int",
+      "big",
+      "other"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "`case Integer i` без guard покрывает все `Integer`, поэтому следующая `case Integer i when i > 10` недостижима — это ошибка компиляции (метка доминируется предыдущей).\nСпецифичные метки и метки с guard пишутся раньше общих. Паттерн-метка после `default` — тоже ошибка доминирования.",
+    "sources": [
+      {
+        "title": "JLS §14.11.1 Switch Blocks (dominance)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.1"
+      },
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-nested-record-01",
+    "block": "java-core",
+    "topic": "Pattern matching",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Point(int x, int y) {}",
+        "record Line(Point a, Point b) {}",
+        "Object o = new Line(new Point(1, 2), new Point(3, 4));",
+        "if (o instanceof Line(Point(var x1, var y1), Point p2) && x1 < p2.x()) {",
+        "    System.out.println(x1 + y1 + p2.y());",
+        "}"
+      ]
+    },
+    "options": [
+      "7",
+      "124",
+      "Ничего не напечатает",
+      "Не скомпилируется: нельзя смешивать `var` и именованный паттерн"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "7"
+    },
+    "explanation": "Record patterns (Java 21, JEP 440) можно вкладывать и смешивать с `var` и обычными type patterns. Переменные паттернов доступны справа от `&&` и в теле `if`.\nСложение целочисленное: все три операнда `int`, строк в выражении нет, поэтому 1 + 2 + 4 = 7.",
+    "sources": [
+      {
+        "title": "JEP 440: Record Patterns",
+        "url": "https://openjdk.org/jeps/440"
+      },
+      {
+        "title": "JLS §14.30.1 Kinds of Patterns",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.30.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-flow-scoping-01",
+    "block": "java-core",
+    "topic": "Pattern matching",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какой фрагмент (тело метода с параметром `Object o`) компилируется?",
+    "options": [
+      "`if (!(o instanceof String s)) return; System.out.println(s.length());`",
+      "`if (o instanceof String s || s.isEmpty()) { }`",
+      "`if (!(o instanceof String s)) { System.out.println(s); }`",
+      "`boolean b = o instanceof String s; System.out.println(s);`"
+    ],
+    "answer": 0,
+    "explanation": "Переменная паттерна видна там, где сопоставление *точно* удалось (flow scoping). После `if (!(o instanceof String s)) return;` дальше по коду `s` определённо присвоена.\nВ `a || s.isEmpty()` правая часть выполняется как раз когда сопоставление не удалось. В `if (!(...)) { … s … }` — тоже. А у `boolean b = o instanceof String s;` область `s` не выходит за пределы выражения.",
+    "sources": [
+      {
+        "title": "JLS §6.3.1 Scope for Pattern Variables in Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.3.1"
+      },
+      {
+        "title": "JEP 394: Pattern Matching for instanceof",
+        "url": "https://openjdk.org/jeps/394"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-finally-return-01",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static int f() {",
+        "        int x = 1;",
+        "        try {",
+        "            return x;",
+        "        } finally {",
+        "            x = 2;",
+        "        }",
+        "    }",
+        "",
+        "    static int g() {",
+        "        try {",
+        "            throw new RuntimeException(\"boom\");",
+        "        } finally {",
+        "            return 3;",
+        "        }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(f() + \" \" + g());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "1 3",
+      "2 3",
+      "1, затем RuntimeException: boom",
+      "2, затем RuntimeException: boom"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1 3"
+    },
+    "explanation": "В `f()` значение для `return` вычислено и сохранено до `finally`; изменение локальной `x` на результат не влияет. С изменяемым объектом вернулась бы та же ссылка, и изменения его полей были бы видны.\nВ `g()` `return` из `finally` завершает метод нормально и молча выбрасывает исключение из `try`. Поэтому `return`/`throw` в `finally` — антипаттерн; `javac -Xlint:finally` об этом предупреждает.",
+    "sources": [
+      {
+        "title": "JLS §14.20.2 Execution of try-finally and try-catch-finally",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.2"
+      },
+      {
+        "title": "JLS §14.17 The return Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.17"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-suppressed-01",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Res implements AutoCloseable {",
+        "    public void close() { throw new IllegalStateException(\"close\"); }",
+        "}",
+        "try (var r = new Res()) {",
+        "    throw new RuntimeException(\"body\");",
+        "} catch (Exception e) {",
+        "    System.out.println(e.getMessage() + \" \" + e.getSuppressed().length + \" \" + e.getSuppressed()[0].getMessage());",
+        "}"
+      ]
+    },
+    "options": [
+      "body 1 close",
+      "close 1 body",
+      "IllegalStateException: close",
+      "RuntimeException: body"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "body 1 close"
+    },
+    "explanation": "Если бросили и тело, и `close()`, основным остаётся исключение тела, а исключение `close()` прикрепляется к нему через `addSuppressed`.\nВ ручном `try/finally` с `close()` в `finally` было бы наоборот: исключение из `finally` затёрло бы исходное — частая причина «потерянных» ошибок. Ресурсы закрываются в порядке, обратном объявлению, и до выполнения `catch`/`finally` самого try-with-resources.",
+    "sources": [
+      {
+        "title": "JLS §14.20.3.2 Extended try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3.2"
+      },
+      {
+        "title": "Javadoc: Throwable.addSuppressed",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Throwable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-static-init-01",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Boom {",
+        "    static int V = Integer.parseInt(\"x\");",
+        "}",
+        "for (int i = 0; i < 2; i++) {",
+        "    try {",
+        "        System.out.println(Boom.V);",
+        "    } catch (Throwable t) {",
+        "        System.out.println(t.getClass().getSimpleName());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "ExceptionInInitializerError\nNoClassDefFoundError",
+      "NumberFormatException\nNumberFormatException",
+      "ExceptionInInitializerError\nExceptionInInitializerError",
+      "ExceptionInInitializerError\n0"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "ExceptionInInitializerError\nNoClassDefFoundError"
+    },
+    "explanation": "Исключение в статическом инициализаторе оборачивается в `ExceptionInInitializerError`, а класс навсегда помечается как ошибочный. Повторная попытка инициализации сразу бросает `NoClassDefFoundError: Could not initialize class …`.\nВ логах прода часто видят именно NCDFE, а настоящая причина случилась раньше. С JDK 18 у NCDFE есть `cause` — синтетический `ExceptionInInitializerError` с текстом и стектрейсом исходного исключения (`Caused by: … [in thread \"main\"]`). Сам объект исходного исключения в цепочке не сохраняется.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "Javadoc: ExceptionInInitializerError",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ExceptionInInitializerError.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-precise-rethrow-recall-01",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "recall",
+    "level": "senior",
+    "question": "Метод объявлен `void run() throws IOException`, а вызываемый `io()` объявлен `throws IOException`. Почему внутри компилируется `try { io(); } catch (Exception e) { log(e); throw e; }`, хотя ловим `Exception`?",
+    "answer_text": "Precise rethrow (Java 7): если параметр `catch` final или эффективно final, `throw e` считается бросающим только те проверяемые исключения, которые реально может бросить `try`-блок, которые этот `catch` способен поймать и которые не поймали `catch`-блоки левее. Объявленный тип `Exception` при этом не важен. Здесь это `IOException` (из `io()`) плюс unchecked.\n\nСтоит переприсвоить `e = new Exception()` — точность пропадёт, и компилятор потребует `throws Exception`. Приём удобен для логирования или отката с пробросом без обёртки.",
+    "explanation": "Ключевое: precise rethrow — для эффективно final параметра catch компилятор знает, что реально может бросить try.",
+    "sources": [
+      {
+        "title": "JLS §11.2.2 Exception Analysis of Statements",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-orelse-eager-01",
+    "block": "java-core",
+    "topic": "Optional",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static String fallback() {",
+        "        System.out.print(\"fallback \");",
+        "        return \"b\";",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        String r1 = Optional.of(\"a\").orElse(fallback());",
+        "        String r2 = Optional.of(\"a\").orElseGet(() -> fallback());",
+        "        System.out.println(r1 + r2);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "fallback aa",
+      "aa",
+      "fallback fallback aa",
+      "fallback ab"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "fallback aa"
+    },
+    "explanation": "Аргумент `orElse` — обычное выражение: оно вычисляется до вызова метода, даже если значение есть. `orElseGet` принимает `Supplier` и вызывает его только для пустого `Optional`.\nРазница критична, когда запасное значение — запрос в БД, создание тяжёлого объекта или побочный эффект.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional.orElse / orElseGet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      },
+      {
+        "title": "JLS §15.12.4.2 Evaluate Arguments",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-map-null-01",
+    "block": "java-core",
+    "topic": "Optional",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Optional<String> o = Optional.of(\"x\").map(s -> null);",
+        "System.out.println(o.isPresent());"
+      ]
+    },
+    "options": [
+      "false",
+      "true",
+      "NullPointerException",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false"
+    },
+    "explanation": "`map` оборачивает результат функции как через `Optional.ofNullable`: если функция вернула `null`, получится `Optional.empty()`, а не NPE. Поэтому `map` безопасно стыкуется с API, возвращающими null.\n`flatMap`, наоборот, требует, чтобы функция вернула не-null `Optional`, иначе NPE.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional.map / flatMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-value-based-01",
+    "block": "java-core",
+    "topic": "Optional",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Optional` — value-based класс. Что из этого следует?",
+    "options": [
+      "Нельзя полагаться на идентичность (`==`, `synchronized`, `identityHashCode`): равные экземпляры взаимозаменяемы",
+      "Каждый вызов `Optional.empty()` гарантированно возвращает новый объект",
+      "`Optional.of(x)` кеширует экземпляры, поэтому `Optional.of(1) == Optional.of(1)` гарантированно `true`",
+      "`Optional` нельзя хранить в коллекциях"
+    ],
+    "answer": 0,
+    "explanation": "Для value-based классов равные экземпляры считаются взаимозаменяемыми, и нельзя использовать операции, зависящие от идентичности: `==`, синхронизацию, `identityHashCode`. Сейчас `Optional.empty()` — синглтон, а `Optional.of` создаёт новые объекты, но это детали реализации, не гарантия.\nВ будущем (Project Valhalla) такие классы могут лишиться идентичности, и код с `synchronized` на них сломается. Сравнивать — через `equals`.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      },
+      {
+        "title": "Javadoc: Value-based Classes",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/doc-files/ValueBased.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-lazy-shortcircuit-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Stream.of(1, 2, 3, 4)",
+        "    .filter(x -> { System.out.print(\"f\" + x + \" \"); return x % 2 == 0; })",
+        "    .map(x -> { System.out.print(\"m\" + x + \" \"); return x * 10; })",
+        "    .findFirst()",
+        "    .ifPresent(System.out::println);"
+      ]
+    },
+    "options": [
+      "f1 f2 m2 20",
+      "f1 f2 f3 f4 m2 m4 20",
+      "f1 m1 f2 m2 20",
+      "f1 f2 f3 f4 m2 20"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "f1 f2 m2 20"
+    },
+    "explanation": "Стрим проводит элементы через весь конвейер по одному («вертикально»), а не этап за этапом. `findFirst` — короткозамыкающая операция: как только `2` прошёл фильтр и `map`, результат найден, и `3`, `4` не трогаются вовсе.\nБез терминальной операции не выполнилось бы ничего. Исключение — stateful-операции вроде `sorted()`: им нужно увидеть все элементы, прежде чем выдать первый.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (laziness, short-circuiting)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-reuse-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Stream<Integer> s = Stream.of(1, 2, 3);",
+        "System.out.println(s.count());",
+        "System.out.println(s.count());"
+      ]
+    },
+    "options": [
+      "3, затем IllegalStateException",
+      "3\n3",
+      "3\n0",
+      "IllegalStateException на первом count()"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "3",
+      "exception": "java.lang.IllegalStateException"
+    },
+    "explanation": "Стрим одноразовый: после терминальной операции повторное использование бросает `IllegalStateException: stream has already been operated upon or closed`. Хранить стрим в поле для повторного прохода — ошибка; храни источник или `Supplier<Stream<T>>`.\nЛюбопытно: с Java 9 `count()` может вообще не обходить элементы, если размер известен заранее, — но стрим всё равно считается использованным.",
+    "sources": [
+      {
+        "title": "Javadoc: Stream (count, повторное использование)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-tomap-duplicate-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<Character, Integer> m = Stream.of(\"apple\", \"avocado\", \"banana\")",
+        "    .collect(Collectors.toMap(s -> s.charAt(0), String::length));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "IllegalStateException (Duplicate key a …)",
+      "{a=7, b=6}",
+      "{a=5, b=6}",
+      "{a=12, b=6}"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.IllegalStateException"
+    },
+    "explanation": "`Collectors.toMap(keyMapper, valueMapper)` без функции слияния при повторном ключе бросает `IllegalStateException` (сообщение вида `Duplicate key a (attempted merging values 5 and 7)`). Нужен третий аргумент: `(x, y) -> x` или `Integer::sum`.\nЕщё ловушка `toMap`: `null`-значение даёт NPE, хотя `HashMap` null допускает.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors.toMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-sorted-stateful-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "tf",
+    "level": "senior",
+    "question": "`sorted()` — промежуточная операция, поэтому в общем случае, как и `map`, пропускает элементы дальше по одному, не дожидаясь конца стрима.",
+    "answer": false,
+    "explanation": "`sorted()` — stateful-операция: чтобы выдать первый элемент, ей нужно получить все. Поэтому `peek` до `sorted` отработает для всех элементов раньше, чем что-либо пройдёт после него, а на бесконечном стриме `sorted()` не завершится.\nИсключение — источник, уже отсортированный в натуральном порядке (`TreeSet`, флаг `SORTED`): тогда `sorted()` без компаратора — no-op.\n`distinct()` тоже stateful (помнит увиденное), но в последовательном стриме выдаёт элементы сразу.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (stateless vs stateful)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-parallel-recall-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "recall",
+    "level": "senior",
+    "question": "Когда `parallelStream()` вредит, а не помогает?",
+    "answer_text": "- Все параллельные стримы по умолчанию делят один `ForkJoinPool.commonPool()` (параллелизм ≈ числу ядер − 1). Блокирующий IO в нём тормозит параллельные операции всего приложения, включая `CompletableFuture` без своего executor'а.\n- Мало данных или дешёвая операция на элемент — накладные расходы на разбиение и слияние больше выигрыша.\n- Плохо делимые источники: `LinkedList`, `Stream.iterate`, IO. Хорошо делятся `ArrayList`, массивы, `IntStream.range`.\n- Порядок дорог: `findFirst`, `limit`, `forEachOrdered` на упорядоченном стриме; иногда помогают `unordered()` и `findAny`.\n- Побочные эффекты и общий изменяемый state в лямбдах (`list.add` в `forEach`) — гонки. Функции должны быть stateless и non-interfering, собирать — через `collect`.\n- `reduce` требует ассоциативной функции и настоящего identity, иначе результат зависит от разбиения.",
+    "explanation": "Ключевое: общий `ForkJoinPool.commonPool()`, стоимость разбиения, плохие источники, порядок и побочные эффекты.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (Parallelism, Non-interference)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      },
+      {
+        "title": "Javadoc: ForkJoinPool.commonPool",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ForkJoinPool.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]
