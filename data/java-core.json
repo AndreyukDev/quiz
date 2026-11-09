@@ -987,7 +987,17 @@
     "topic": "Records",
     "type": "mcq",
     "level": "senior",
-    "question": "Что можно делать в компактном каноническом конструкторе `record User(String name) { User { ... } }`?",
+    "question": "Что можно делать в компактном каноническом конструкторе записи?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record User(String name) {",
+        "    User {          // компактный конструктор: без списка параметров",
+        "        // ... что здесь допустимо?",
+        "    }",
+        "}"
+      ]
+    },
     "options": [
       "Проверить и переприсвоить параметр (`name = name.strip();`) — поле присвоится из него автоматически после тела",
       "Присвоить поле явно: `this.name = name.strip();`",
@@ -1107,7 +1117,22 @@
     "topic": "Sealed",
     "type": "mcq",
     "level": "senior",
-    "question": "`sealed interface Shape permits Circle, Square`. Чем `switch (shape) { case Circle c -> …; case Square s -> …; }` без `default` лучше варианта с `default`?",
+    "question": "Иерархия закрыта через `sealed`, switch написан без `default`. Чем это лучше варианта с `default`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "sealed interface Shape permits Circle, Square {}",
+        "record Circle(double r) implements Shape {}",
+        "record Square(double side) implements Shape {}",
+        "",
+        "double area(Shape shape) {",
+        "    return switch (shape) {",
+        "        case Circle c -> Math.PI * c.r() * c.r();",
+        "        case Square s -> s.side() * s.side();",
+        "    }; // default нет",
+        "}"
+      ]
+    },
     "options": [
       "Добавление нового наследника в `permits` сломает компиляцию всех таких switch — ни один случай не забудется",
       "Он быстрее: без `default` JIT строит таблицу переходов",
@@ -1521,7 +1546,22 @@
     "topic": "Исключения",
     "type": "recall",
     "level": "senior",
-    "question": "Метод объявлен `void run() throws IOException`, а вызываемый `io()` объявлен `throws IOException`. Почему внутри компилируется `try { io(); } catch (Exception e) { log(e); throw e; }`, хотя ловим `Exception`?",
+    "question": "Почему этот код компилируется, хотя ловим `Exception`, а метод объявляет только `throws IOException`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "void io() throws IOException { /* ... */ }",
+        "",
+        "void run() throws IOException {",
+        "    try {",
+        "        io();",
+        "    } catch (Exception e) {",
+        "        log(e);",
+        "        throw e;   // почему здесь не нужен throws Exception?",
+        "    }",
+        "}"
+      ]
+    },
     "answer_text": "Precise rethrow (Java 7): если параметр `catch` final или эффективно final, `throw e` считается бросающим только те проверяемые исключения, которые реально может бросить `try`-блок, которые этот `catch` способен поймать и которые не поймали `catch`-блоки левее. Объявленный тип `Exception` при этом не важен. Здесь это `IOException` (из `io()`) плюс unchecked.\n\nСтоит переприсвоить `e = new Exception()` — точность пропадёт, и компилятор потребует `throws Exception`. Приём удобен для логирования или отката с пробросом без обёртки.",
     "explanation": "Ключевое: precise rethrow — для эффективно final параметра catch компилятор знает, что реально может бросить try.",
     "sources": [
@@ -1810,6 +1850,440 @@
       {
         "title": "Javadoc: ForkJoinPool.commonPool",
         "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ForkJoinPool.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-groupingby-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> words = List.of(\"apple\", \"avocado\", \"banana\", \"blueberry\", \"cherry\");",
+        "Map<Character, Long> m = words.stream()",
+        "    .collect(Collectors.groupingBy(w -> w.charAt(0), TreeMap::new, Collectors.counting()));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "{a=2, b=2, c=1}",
+      "IllegalStateException (Duplicate key a …)",
+      "{a=[apple, avocado], b=[banana, blueberry], c=[cherry]}",
+      "{a=1, b=1, c=1}"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{a=2, b=2, c=1}"
+    },
+    "explanation": "`groupingBy` собирает элементы с одинаковым ключом в группу, а downstream-коллектор (`counting`) сворачивает группу в значение — `Long`, не `int`. `toMap` с теми же функциями упал бы на дубликате ключа.\nФабрика `TreeMap::new` нужна ради порядка: тип мапы по умолчанию не гарантирован (на практике `HashMap`, порядок не определён). Другие полезные downstream: `mapping(f, toSet())`, `summingInt`, `maxBy`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-partitioningby-01",
+    "block": "java-core",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<Boolean, List<Integer>> m = Stream.of(1, 3, 5)",
+        "    .collect(Collectors.partitioningBy(x -> x % 2 == 0));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "{false=[1, 3, 5], true=[]}",
+      "{false=[1, 3, 5]}",
+      "{false=[1, 3, 5], true=null}",
+      "{true=[1, 3, 5]}"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{false=[1, 3, 5], true=[]}"
+    },
+    "explanation": "`partitioningBy` всегда возвращает мапу с обоими ключами, `false` и `true`, даже если одна из групп пуста. `groupingBy(x -> x % 2 == 0)` дал бы `{false=[1, 3, 5]}` — без ключа `true`, и `m.get(true)` вернул бы `null`.\nПоэтому для деления на два по предикату берут `partitioningBy`: не нужно проверять `null`. Порядок вывода `false`, затем `true` — особенность реализации, а не контракт.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-sets-order-01",
+    "block": "java-core",
+    "topic": "Выбор коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> src = List.of(\"pear\", \"Apple\", \"fig\", \"apple\");",
+        "Set<String> linked = new LinkedHashSet<>(src);",
+        "Set<String> tree = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);",
+        "tree.addAll(src);",
+        "System.out.println(linked + \" \" + tree);"
+      ]
+    },
+    "options": [
+      "[pear, Apple, fig, apple] [Apple, fig, pear]",
+      "[pear, Apple, fig, apple] [Apple, apple, fig, pear]",
+      "[Apple, apple, fig, pear] [Apple, fig, pear]",
+      "[pear, Apple, fig, apple] [apple, fig, pear]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[pear, Apple, fig, apple] [Apple, fig, pear]"
+    },
+    "explanation": "`LinkedHashSet` хранит порядок вставки, дубликаты определяет через `hashCode` + `equals`: `\"Apple\"` и `\"apple\"` разные — оба остаются. `HashSet` порядка не гарантирует вовсе.\n`TreeSet` сортирует и считает дубликатом всё, где компаратор вернул 0 (как в примере с `BigDecimal`). С `CASE_INSENSITIVE_ORDER` `\"apple\"` равен `\"Apple\"`, и второй не добавляется — остаётся первый вставленный, `Apple`, а не последний. Сложность: `HashSet`/`LinkedHashSet` — O(1) в среднем, `TreeSet` — O(log n).",
+    "sources": [
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: LinkedHashSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashSet.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-lru-01",
+    "block": "java-core",
+    "topic": "Выбор коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Lru<K, V> extends LinkedHashMap<K, V> {",
+        "    private final int max;",
+        "    Lru(int max) { super(16, 0.75f, true); this.max = max; }",
+        "    @Override",
+        "    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) { return size() > max; }",
+        "}",
+        "Map<String, Integer> cache = new Lru<>(2);",
+        "cache.put(\"a\", 1);",
+        "cache.put(\"b\", 2);",
+        "cache.get(\"a\");",
+        "cache.put(\"c\", 3);",
+        "System.out.println(cache.keySet());"
+      ]
+    },
+    "options": [
+      "[a, c]",
+      "[b, c]",
+      "[a, b, c]",
+      "[c, a]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[a, c]"
+    },
+    "explanation": "Третий аргумент конструктора `LinkedHashMap(16, 0.75f, true)` включает порядок доступа: `get(\"a\")` переносит `a` в конец. После `put(\"c\")` вызывается `removeEldestEntry`, и самый давно не использованный `b` удаляется.\nЭто готовый LRU-кэш в пару строк, но не потокобезопасный. Ловушка: в режиме access-order даже `get` — структурная модификация, обход с `get` внутри даст CME. Для прода — Caffeine или синхронизация.",
+    "sources": [
+      {
+        "title": "Javadoc: LinkedHashMap (access-order, removeEldestEntry)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-pq-iteration-01",
+    "block": "java-core",
+    "topic": "Выбор коллекции",
+    "type": "tf",
+    "level": "senior",
+    "question": "Обход `PriorityQueue` через for-each (и её `toString()`) гарантированно выдаёт элементы в порядке приоритета.",
+    "answer": false,
+    "explanation": "Внутри `PriorityQueue` — двоичная куча в массиве. Гарантирован только минимум в корне (каждый родитель ≤ своих детей), массив целиком не отсортирован: `peek()`/`poll()` дают минимальный элемент, а итератор идёт по массиву в порядке кучи. Например, `new PriorityQueue<>(List.of(5, 1, 4, 2, 3))` печатается как `[1, 2, 4, 5, 3]`.\nJavadoc прямо говорит: порядок обхода не гарантирован; для упорядоченного обхода — `Arrays.sort(pq.toArray())` или вынимать `poll()` в цикле. Отладочный лог очереди вводит в заблуждение.",
+    "sources": [
+      {
+        "title": "Javadoc: PriorityQueue",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/PriorityQueue.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-arraylist-linkedlist-recall-01",
+    "block": "java-core",
+    "topic": "Выбор коллекции",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему `LinkedList` на практике почти никогда не выигрывает у `ArrayList`, хотя вставка в середину у него O(1)?",
+    "answer_text": "- O(1) вставка у `LinkedList` — только когда узел уже найден (через `ListIterator`). Найти позицию по индексу — O(n) обход узлов.\n- Каждый элемент — отдельный объект `Node` (заголовок + три ссылки `item`/`next`/`prev`, порядка 24–32 байт) против одной ссылки (4–8 байт) в массиве `ArrayList`: в разы больше памяти и работы для GC.\n- Узлы разбросаны по куче — промахи кэша процессора. `ArrayList` сдвигает элементы одним `System.arraycopy` по непрерывной памяти, и на практике это быстро до весьма больших размеров.\n- Честный плюс `LinkedList` — операции на концах: удаление из головы у `ArrayList` O(n), у `LinkedList` O(1). Но для очереди или стека есть `ArrayDeque` — тоже O(1) на концах и компактнее (зато не принимает `null`); javadoc прямо говорит, что как очередь он, скорее всего, быстрее `LinkedList`.\n- Остаётся узкий случай: много вставок и удалений через итератор посреди большого списка — и то стоит мерить.",
+    "explanation": "Ключевое: O(1) только при уже найденном узле, а поиск — O(n) по разрозненной памяти; для очереди есть `ArrayDeque`.",
+    "sources": [
+      {
+        "title": "Javadoc: LinkedList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedList.html"
+      },
+      {
+        "title": "Javadoc: ArrayDeque",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayDeque.html"
+      },
+      {
+        "title": "Javadoc: ArrayList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-complexity-01",
+    "block": "java-core",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какова сложность `get` в `HashMap` (Java 8+)?",
+    "options": [
+      "O(1) в среднем; при коллизиях в бакете — O(log n) (дерево), для не-`Comparable` ключей с равными хешами — до O(n)",
+      "Всегда O(1): хеш-таблица гарантирует константу при любых ключах, коллизии лишь увеличивают константу",
+      "O(log n) всегда: с Java 8 все бакеты `HashMap` хранятся как красно-чёрные деревья",
+      "O(1) амортизированно даже в худшем случае: `resize` перераспределяет коллизии по новым бакетам"
+    ],
+    "answer": 0,
+    "explanation": "Javadoc обещает константное время для `get`/`put` при условии, что хеш-функция хорошо распределяет ключи. При массовых коллизиях (плохой `hashCode` или подобранные ключи) длинный бакет превращается в красно-чёрное дерево — O(log n) вместо O(n) у списка (JEP 180). Дерево строится, только если ёмкость таблицы ≥ 64, иначе вместо этого будет resize.\nn здесь — число узлов в бакете, а не размер мапы. Почему без `Comparable` поиск по дереву деградирует — см. вопрос про treeify: приходится обходить оба поддерева.",
+    "sources": [
+      {
+        "title": "Javadoc: HashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      },
+      {
+        "title": "JEP 180: Handle Frequent HashMap Collisions with Balanced Trees",
+        "url": "https://openjdk.org/jeps/180"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-comparator-nulls-01",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "mcq",
+    "level": "senior",
+    "question": "У части пользователей `getCity()` возвращает `null` (имя — всегда не `null`). Какой компаратор отсортирует по городу (`null` в конце), а внутри города — по имени, без NPE?",
+    "options": [
+      "`Comparator.comparing(User::getCity, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(User::getName)`",
+      "`Comparator.nullsLast(Comparator.comparing(User::getCity)).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).reversed().thenComparing(User::getName)`"
+    ],
+    "answer": 0,
+    "explanation": "`nullsLast` оборачивает компаратор и обрабатывает `null` **сравниваемых объектов**. В варианте `nullsLast(comparing(User::getCity))` сами `User` не null — null появляется уже внутри, при сравнении городов, и падает NPE. Правильно — передать null-безопасный компаратор вторым аргументом в `comparing`, чтобы он сравнивал извлечённые ключи.\nВарианты без `nullsLast` бросают NPE на первом же `null`-городе; `reversed()` этого не меняет.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.comparing / nullsLast",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-oop-ctor-overridable-01",
+    "block": "java-core",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Base {",
+        "    Base() { init(); }",
+        "    void init() {}",
+        "}",
+        "class Child extends Base {",
+        "    private final List<String> items = new ArrayList<>();",
+        "    @Override void init() { items.add(\"x\"); }",
+        "}",
+        "new Child();",
+        "System.out.println(\"ok\");"
+      ]
+    },
+    "options": [
+      "NullPointerException",
+      "ok",
+      "Не скомпилируется: final-поле используется до инициализации",
+      "ok, items содержит [x]"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Порядок создания `Child`: сначала конструктор `Base` (неявный `super()`), и только потом инициализаторы полей `Child`. `Base()` вызывает `init()`, а он виртуальный — выполняется `Child.init()`, когда `items` ещё `null`. Итог — NPE.\nОтсюда правило: не вызывать из конструктора переопределяемые методы (делать их `private`/`final` или выносить инициализацию в фабрику). Исключение-ловушка: у `final`-поля с константным инициализатором (`final String s = \"x\"`) компилятор подставляет значение в месте использования, поэтому `init()` видит `\"x\"`, хотя само поле ещё не присвоено.\nJava 25 (JEP 513, гибкие тела конструкторов): поле можно присвоить до `super()` — `Child() { items = new ArrayList<>(); super(); }` (без инициализатора в объявлении), и `init()` его увидит. В Java 21 так нельзя.",
+    "sources": [
+      {
+        "title": "JLS §12.5 Creation of New Class Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.5"
+      },
+      {
+        "title": "JEP 513: Flexible Constructor Bodies (Java 25)",
+        "url": "https://openjdk.org/jeps/513"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-oop-default-diamond-01",
+    "block": "java-core",
+    "topic": "Наследование и интерфейсы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что будет с этим кодом?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "interface A { default String hi() { return \"A\"; } }",
+        "interface B { default String hi() { return \"B\"; } }",
+        "class C implements A, B {}"
+      ]
+    },
+    "options": [
+      "Не скомпилируется: `C` обязан переопределить `hi()`; внутри можно вызвать `A.super.hi()`",
+      "Скомпилируется; `new C().hi()` вернёт \"A\" — побеждает первый интерфейс в `implements`",
+      "Скомпилируется; `new C().hi()` бросит `IncompatibleClassChangeError`",
+      "Скомпилируется; вызов `new C().hi()` неоднозначен, но `((A) c).hi()` вернёт \"A\""
+    ],
+    "answer": 0,
+    "explanation": "Класс наследует два несвязанных default-метода с одинаковой сигнатурой — это ошибка компиляции («types A and B are incompatible»). Нужно переопределить `hi()` в `C` и при желании явно выбрать реализацию: `A.super.hi()`.\nПравила разрешения: метод класса (или суперкласса) побеждает default-метод интерфейса; более специфичный интерфейс (наследник) побеждает родительский. Если `B` перекомпилируют с новым default-методом отдельно от `C`, конфликт проявится уже в рантайме — `IncompatibleClassChangeError` при вызове.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.4 Inheriting Methods with Override-Equivalent Signatures",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.4"
+      },
+      {
+        "title": "JLS §15.12.3 Compile-Time Step 3",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-lambdas-method-ref-null-01",
+    "block": "java-core",
+    "topic": "Лямбды и ссылки на методы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String s = null;",
+        "Supplier<Integer> lambda = () -> s.length();",
+        "System.out.println(\"lambda created\");",
+        "Supplier<Integer> ref = s::length;",
+        "System.out.println(\"ref created\");"
+      ]
+    },
+    "options": [
+      "lambda created, затем NullPointerException",
+      "lambda created\nref created",
+      "NullPointerException при создании лямбды",
+      "Не скомпилируется: s не effectively final"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "lambda created",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Лямбда `() -> s.length()` захватывает значение `s` и разыменует его только при вызове `get()` — создание проходит спокойно. У ссылки на метод вида `выражение::метод` получатель вычисляется и проверяется на `null` сразу при создании ссылки — NPE вылетает на этой строке, даже если `get()` никто не вызовет.\nПрактическое следствие: `optional.orElseGet(obj::compute)` при `obj == null` упадёт сразу, а с лямбдой NPE возможен только при вызове, то есть если `Optional` пуст.",
+    "sources": [
+      {
+        "title": "JLS §15.13.3 Run-Time Evaluation of Method References",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.13.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-lambdas-effectively-final-recall-01",
+    "block": "java-core",
+    "topic": "Лямбды и ссылки на методы",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему лямбда не может изменить захваченную локальную переменную, и чем плох обход через `int[] counter = {0}`?",
+    "answer_text": "Лямбда (и анонимный класс) захватывает **копию значения** локальной переменной: сама переменная живёт в кадре стека метода, а лямбда может пережить этот кадр и выполниться в другом потоке. Разрешить изменение значило бы создать иллюзию общей переменной — поэтому JLS требует, чтобы захваченные локальные переменные были final или effectively final.\n\nОбход `int[] counter = {0}` (или поле) компилируется: меняется элемент массива в куче, а не локальная переменная. Но так возвращается общее изменяемое состояние без синхронизации. В parallel-стриме, `CompletableFuture` или пуле потоков это гонка: `counter[0]++` теряет инкременты, и нет гарантий видимости.\n\nДаже в последовательном стриме побочные эффекты ненадёжны: с Java 9 `count()` может вообще не выполнить `peek`/`map`, если размер известен заранее.\n\nПравильно — считать без побочных эффектов (`count()`, `reduce`, `collect`), а если счётчик действительно общий между потоками — `AtomicInteger`/`LongAdder`.",
+    "explanation": "Ключевое: лямбда захватывает значение, а не переменную; обход через массив возвращает изменяемое общее состояние со всеми гонками.",
+    "sources": [
+      {
+        "title": "JLS §15.27.2 Lambda Body",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.2"
+      },
+      {
+        "title": "Javadoc: package java.util.stream (Side-effects)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
       }
     ],
     "java_version": "21",
