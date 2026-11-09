@@ -80,6 +80,15 @@
 9. java-new — что нового 17→25 по JEP
 10. по желанию: testing, security (OAuth2/JWT), sql, algorithms
 
+### Статус и пробелы ядра (2026-11-09)
+- **java-core — готов**: 50 вопросов, по 3–5 на тему из п. 1, сниппеты прогнаны на JDK 21, агент-противник пройден. Перекос: 25 из 50 — «что напечатает»; если мешает — часть перевести в mcq.
+- **Сейчас: хозяин обкатывает на телефоне** (шаг 3 порядка работы). Новые блоки — после его правок формата.
+- 50 вопросов ядро не закрывают. Решено делить ядро на блоки, а не раздувать java-core. Следующие (вставить в план перед concurrency):
+  - **java-lang** (~40): кеш `Integer` (127/128), NPE автораспаковки в тернарнике, выбор перегрузки (widening → boxing → varargs), порядок инициализации и вызов переопределённого метода из конструктора, `byte b += 1` vs `b = b + 1`, `0.1+0.2`, `NaN`, `-0.0`; default-методы и «ромб», правила переопределения (ковариантный возврат, throws, видимость), скрытие static, inner-классы и захват `this`; enum (синглтон, `EnumMap`, тела констант); лямбды: effectively final, bound/unbound ссылки, `obj::m` вычисляет получатель сразу.
+  - **java-collections** (~35): `LinkedHashMap` access-order/LRU, `TreeMap`/`NavigableMap`, `PriorityQueue` (итератор не по порядку), `ArrayDeque`, `WeakHashMap`/`IdentityHashMap`, рандомизированный порядок `Set.of`/`Map.of`, `Comparator.comparing`/`nullsFirst`.
+  - **Stream API и generics глубже** (в эти блоки или отдельный `java-functional`): `groupingBy`/`partitioningBy` + downstream, `flatMap`/`mapMulti`, `reduce` и identity, `teeing`, примитивные стримы; Gatherers (JEP 485, финал в 24 — отметить для 25); bridge-методы, `<T extends Comparable<? super T>>`, `@SafeVarargs`, capture helper; строки: суррогатные пары (`length()` vs `codePoints()`), text blocks.
+- Тяжёлую генерацию блоков запускать из `claude` CLI по подписке, а не через agent.py (API).
+
 ## Порядок работы
 1. Каркас: `index.html` (UI, Лейтнер, `localStorage`, экспорт/импорт, статистика, подсветка), PWA, схема и валидатор, скрипт сборки. 3–4 тестовых вопроса всех типов.
 2. Блок `java-core`: темы → вопросы → прогон сниппетов → проверка агентом-противником → правки.
