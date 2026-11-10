@@ -819,5 +819,2080 @@
       "by": "adversary-agent",
       "at": "2026-11-09"
     }
+  },
+  {
+    "id": "java-core-boxing-ternary-npe-01",
+    "num": "1.22",
+    "block": "java-core",
+    "topic": "Автораспаковка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer cached = null;",
+        "boolean hit = true;",
+        "Integer v = hit ? cached : 0;",
+        "System.out.println(v);"
+      ]
+    },
+    "options": [
+      "NullPointerException",
+      "null",
+      "0",
+      "Не скомпилируется: тернарный оператор с null и int"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Второй операнд `Integer`, третий `int` — это числовой условный оператор, и его тип `int`, а не `Integer`. Поэтому `cached` распаковывается ещё до присваивания, и `null` даёт NPE, хотя слева `Integer`.\nТак же ломаются `flag ? map.get(k) : 0` и `return found ? entity.getId() : -1` в методе, возвращающем `Long`. Фикс: оба операнда одного ссылочного типа (`Integer.valueOf(0)`) или `Objects.requireNonNullElse`.",
+    "sources": [
+      {
+        "title": "JLS §15.25 Conditional Operator ? :",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.25"
+      },
+      {
+        "title": "JLS §15.25.2 Numeric Conditional Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.25.2"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-boxing-integer-cache-01",
+    "num": "1.23",
+    "block": "java-core",
+    "topic": "Автораспаковка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код (JVM без доп. флагов)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer a = 127, b = 127;",
+        "Integer c = 128, d = 128;",
+        "System.out.println((a == b) + \" \" + (c == d) + \" \" + c.equals(d));"
+      ]
+    },
+    "options": [
+      "true false true",
+      "true true true",
+      "false false true",
+      "true false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false true"
+    },
+    "explanation": "Автоупаковка идёт через `Integer.valueOf`, а он гарантированно кеширует значения от -128 до 127 (§5.1.7). `127` — один и тот же объект, `128` — два разных, и `==` сравнивает ссылки.\nВерхнюю границу кеша можно поднять (`-XX:AutoBoxCacheMax`), и тогда `c == d` станет `true` — поэтому код, «работающий на тестах», ломается на реальных id. Обёртки сравнивают только через `equals` или после явной распаковки.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Integer.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-boxing-long-contains-01",
+    "num": "1.24",
+    "block": "java-core",
+    "topic": "Автораспаковка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Set<Long> ids = new HashSet<>(List.of(1L, 2L, 3L));",
+        "int id = 2;",
+        "System.out.println(ids.contains(id) + \" \" + ids.contains((long) id));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "Не скомпилируется: contains ожидает Long",
+      "true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`contains`, `remove`, `Map.get` принимают `Object`, поэтому компилятор молча упаковывает `int` в `Integer`. `Integer.equals(Long)` всегда `false`, так что элемент «не находится».\nТипичный баг: `Map<Long, User>` и `get(intId)` всегда возвращают `null`. IDE и Error Prone (`CollectionIncompatibleType`) это ловят, `javac` — нет.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.contains",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html"
+      },
+      {
+        "title": "Javadoc: Integer.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-boxing-mixed-eq-01",
+    "num": "1.25",
+    "block": "java-core",
+    "topic": "Автораспаковка",
+    "type": "tf",
+    "level": "senior",
+    "question": "`Long x = 1000L; long y = 1000L;` — выражение `x == y` сравнивает ссылки, поэтому вне кеша (-128..127) даст `false`.",
+    "answer": false,
+    "explanation": "Неверно. Если один операнд `==` примитив, а другой обёртка, обёртка распаковывается и сравниваются значения: `x == y` — `true`. Ссылки сравниваются, только когда оба операнда ссылочные (`Long == Long`).\nОбратная сторона: если `x == null`, распаковка бросит NPE.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-compound-assign-01",
+    "num": "1.26",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие строки не скомпилируются?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "byte b = 10;",
+        "b += 300;          // (1)",
+        "b = b + 1;         // (2)",
+        "b++;               // (3)",
+        "char c = 'a' + 1;  // (4)"
+      ]
+    },
+    "options": [
+      "Только (2)",
+      "(1) и (2)",
+      "(2) и (4)",
+      "(1), (2) и (4)"
+    ],
+    "answer": 0,
+    "explanation": "`b + 1` имеет тип `int`, и присвоить его `byte` без приведения нельзя — ошибка в (2).\nСоставное присваивание `E1 op= E2` означает `E1 = (T)(E1 op E2)` со скрытым сужающим приведением, поэтому (1) компилируется — и молча переполняется: `(byte) 310 == 54`. `b++` тоже с неявным приведением.\n(4) — константное выражение (98), которое помещается в `char`, а для констант сужение в присваивании разрешено.",
+    "sources": [
+      {
+        "title": "JLS §15.26.2 Compound Assignment Operators",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.26.2"
+      },
+      {
+        "title": "JLS §5.2 Assignment Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-char-concat-01",
+    "num": "1.27",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println('a' + 'b' + \"c\");",
+        "System.out.println(\"c\" + 'a' + 'b');"
+      ]
+    },
+    "options": [
+      "195c\ncab",
+      "abc\ncab",
+      "abc\nc195",
+      "195c\nc195"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "195c\ncab"
+    },
+    "explanation": "`+` вычисляется слева направо. `'a' + 'b'` — сложение двух `char`, они расширяются до `int`: 97 + 98 = 195, потом конкатенация с `\"c\"`.\nВо второй строке первым идёт `String`, поэтому каждый следующий `+` — конкатенация и `char` добавляется как символ.",
+    "sources": [
+      {
+        "title": "JLS §15.18.1 String Concatenation Operator +",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-remainder-01",
+    "num": "1.28",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(-7 / 2 + \" \" + -7 % 2 + \" \" + Math.floorMod(-7, 2));"
+      ]
+    },
+    "options": [
+      "-3 -1 1",
+      "-4 1 1",
+      "-3 1 1",
+      "-4 -1 -1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-3 -1 1"
+    },
+    "explanation": "Целочисленное деление в Java округляет к нулю (`-3`), а знак остатка совпадает со знаком делимого (`-1`). `Math.floorMod` берёт знак делителя.\nОтсюда баги: `x % 2 == 1` не находит отрицательные нечётные, `hash % n` даёт отрицательный индекс шарда. Для индексов — `Math.floorMod(hash, n)`.",
+    "sources": [
+      {
+        "title": "JLS §15.17.3 Remainder Operator %",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3"
+      },
+      {
+        "title": "JLS §15.17.2 Division Operator /",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.2"
+      },
+      {
+        "title": "Javadoc: Math.floorMod",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-abs-min-01",
+    "num": "1.29",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код? (`hashCode()` этой строки равен `Integer.MIN_VALUE`)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int hash = \"polygenelubricants\".hashCode();",
+        "int shard = Math.abs(hash) % 3;",
+        "System.out.println(Math.abs(hash) + \" \" + shard);"
+      ]
+    },
+    "options": [
+      "-2147483648 -2",
+      "2147483648 2",
+      "2147483647 1",
+      "ArithmeticException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-2147483648 -2"
+    },
+    "explanation": "`Math.abs(Integer.MIN_VALUE)` возвращает сам `MIN_VALUE`: положительного 2³¹ в `int` нет. Остаток от отрицательного числа отрицателен, и шард получается `-2` → `ArrayIndexOutOfBoundsException` где-то дальше, раз на 4 миллиарда хешей.\nПравильно: `Math.floorMod(hash, n)` или `(hash & 0x7fffffff) % n`. `Math.absExact` (Java 15+) в таком случае бросит `ArithmeticException`.",
+    "sources": [
+      {
+        "title": "Javadoc: Math.abs / Math.absExact / Math.floorMod",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      },
+      {
+        "title": "JLS §15.17.3 Remainder Operator %",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-int-overflow-01",
+    "num": "1.30",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "long monthMs = 30 * 24 * 60 * 60 * 1000;",
+        "System.out.println(monthMs);"
+      ]
+    },
+    "options": [
+      "-1702967296",
+      "2592000000",
+      "Не скомпилируется: константа не помещается в int",
+      "ArithmeticException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-1702967296"
+    },
+    "explanation": "Все множители — `int`, поэтому произведение считается в `int` и переполняется (2 592 000 000 > 2³¹−1), а в `long` расширяется уже испорченное значение. Переполнение `int` не ошибка ни в рантайме, ни при свёртке констант компилятором.\nФикс: `30L * 24 * …`, `Duration.ofDays(30).toMillis()` или `Math.multiplyExact`, который бросит `ArithmeticException`.",
+    "sources": [
+      {
+        "title": "JLS §15.17.1 Multiplication Operator *",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.1"
+      },
+      {
+        "title": "JLS §5.1.2 Widening Primitive Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.2"
+      },
+      {
+        "title": "Javadoc: Math.multiplyExact",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-switch-fallthrough-01",
+    "num": "1.31",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int code = 2;",
+        "String r = \"\";",
+        "switch (code) {",
+        "    case 1: r += \"one \";",
+        "    case 2: r += \"two \";",
+        "    case 3: r += \"three \";",
+        "        break;",
+        "    default: r += \"other\";",
+        "}",
+        "System.out.println(r.trim());"
+      ]
+    },
+    "options": [
+      "two three",
+      "two",
+      "two three other",
+      "one two three"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "two three"
+    },
+    "explanation": "В switch со старыми метками `case …:` выполнение «проваливается» в следующие ветки до `break`. Начали с `case 2`, выполнили `case 3`, остановились на `break`.\nСтрелочная форма `case 2 -> …` (Java 14+) не проваливается — в новом коде лучше она. `javac -Xlint:fallthrough` предупреждает о проваливании.",
+    "sources": [
+      {
+        "title": "JLS §14.11.3 Execution of a switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.3"
+      },
+      {
+        "title": "JLS §14.11 The switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-sum-01",
+    "num": "1.32",
+    "block": "java-core",
+    "topic": "Числа: double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "double a = 0.1 + 0.2;",
+        "System.out.println(a + \" \" + (a == 0.3));"
+      ]
+    },
+    "options": [
+      "0.30000000000000004 false",
+      "0.3 true",
+      "0.3 false",
+      "0.30000000000000004 true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "0.30000000000000004 false"
+    },
+    "explanation": "`0.1`, `0.2` и `0.3` не представимы точно в двоичной плавающей точке (IEEE 754), их ближайшие `double` в сумме дают не тот `double`, что ближайший к `0.3`. `Double.toString` печатает столько цифр, сколько нужно, чтобы однозначно восстановить значение.\nСравнивать `double` — с допуском (`Math.abs(a - b) < eps`), деньги — не в `double`.",
+    "sources": [
+      {
+        "title": "JLS §4.2.3 Floating-Point Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.3"
+      },
+      {
+        "title": "JLS §4.2.4 Floating-Point Operations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-nan-negzero-01",
+    "num": "1.33",
+    "block": "java-core",
+    "topic": "Числа: double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "double nan = Double.NaN;",
+        "System.out.println((nan == nan) + \" \" + Double.valueOf(nan).equals(nan));",
+        "System.out.println((0.0 == -0.0) + \" \" + Double.valueOf(0.0).equals(-0.0));"
+      ]
+    },
+    "options": [
+      "false true\ntrue false",
+      "false false\ntrue true",
+      "true true\ntrue false",
+      "false true\ntrue true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true\ntrue false"
+    },
+    "explanation": "`==` следует IEEE 754: `NaN` не равен ничему, даже себе, а `0.0 == -0.0`. `Double.equals` и `Double.compare` сравнивают битовое представление: `NaN` равен `NaN`, а `0.0` и `-0.0` различны.\nПоэтому `HashSet<Double>` находит `NaN`, а сортировка `double[]` ставит `-0.0` перед `0.0`. В своих `equals` для `double`-полей — `Double.compare`, а не `==`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "Javadoc: Double.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-bigdecimal-double-ctor-01",
+    "num": "1.34",
+    "block": "java-core",
+    "topic": "Числа: double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var exact = new BigDecimal(\"0.1\");",
+        "System.out.println(new BigDecimal(0.1).equals(exact) + \" \" + BigDecimal.valueOf(0.1).equals(exact));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "false false",
+      "true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`new BigDecimal(0.1)` берёт точное двоичное значение `double`: 0.1000000000000000055511151231257827… `BigDecimal.valueOf(double)` идёт через `Double.toString` и даёт ровно `0.1`.\nДеньги создают из строки или `valueOf`/`long`, но не конструктором от `double`. Ещё одна ловушка: `equals` учитывает масштаб (`0.1` ≠ `0.10`), сравнивать по значению — `compareTo`.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal(double), BigDecimal.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-bigdecimal-divide-01",
+    "num": "1.35",
+    "block": "java-core",
+    "topic": "Числа: double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var total = new BigDecimal(\"100\");",
+        "var parts = new BigDecimal(\"3\");",
+        "System.out.println(total.divide(parts));"
+      ]
+    },
+    "options": [
+      "ArithmeticException",
+      "33.33333333333333",
+      "33",
+      "33.33"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.ArithmeticException"
+    },
+    "explanation": "`divide(BigDecimal)` без масштаба и режима округления требует точного результата. 100/3 — бесконечная дробь: «Non-terminating decimal expansion; no exact representable decimal result».\nНужно явно: `divide(parts, 2, RoundingMode.HALF_EVEN)` или `divide(parts, MathContext.DECIMAL64)`. Так же `setScale(2)` без `RoundingMode` бросит, если приходится округлять.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal.divide",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: RoundingMode",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/RoundingMode.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-money-recall-01",
+    "num": "1.36",
+    "block": "java-core",
+    "topic": "Числа: double и BigDecimal",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему деньги не хранят в `double` и как делать правильно?",
+    "answer_text": "- `double` — двоичная плавающая точка: `0.1` хранится приближённо, суммы копят ошибку, `0.1 + 0.2 != 0.3`. Для отчётов и сверок это расхождения на копейки.\n- **`BigDecimal`**: создавать из строки или `BigDecimal.valueOf`, не `new BigDecimal(double)`. Масштаб и `RoundingMode` задавать явно (`HALF_EVEN` — банковское, `HALF_UP` — «школьное», выбирает бизнес). Сравнивать через `compareTo`, не `equals` (масштаб).\n- **`long` в минорных единицах** (копейки): быстро и просто, но число знаков зависит от валюты (JPY — 0, BHD — 3, см. `Currency.getDefaultFractionDigits`), а умножение на курс или процент всё равно требует правила округления.\n- В БД — `NUMERIC(p, s)`, не `float`/`double precision`. Сумму хранят вместе с валютой.",
+    "explanation": "Основное: двоичная дробь не представляет точно `0.1`, ошибки накапливаются и вылезают при округлении и сравнении.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: Currency.getDefaultFractionDigits",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Currency.html"
+      },
+      {
+        "title": "JLS §4.2.3 Floating-Point Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-phases-01",
+    "num": "1.37",
+    "block": "java-core",
+    "topic": "Перегрузка и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static void m(long x)    { System.out.println(\"long\"); }",
+        "    static void m(Integer x) { System.out.println(\"Integer\"); }",
+        "    static void m(int... x)  { System.out.println(\"int...\"); }",
+        "",
+        "    public static void main(String[] args) {",
+        "        m(5);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "long",
+      "Integer",
+      "int...",
+      "Не скомпилируется: вызов неоднозначен"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "long"
+    },
+    "explanation": "Перегрузка выбирается в три фазы: 1) без упаковки и varargs (подходит расширение `int → long`), 2) с упаковкой, 3) с varargs. Как только фаза нашла кандидатов, следующие не рассматриваются — поэтому `long`, хотя `Integer` «ближе по смыслу».\nПравило сделано ради совместимости: код до Java 5 не должен был менять поведение после появления автоупаковки и varargs.",
+    "sources": [
+      {
+        "title": "JLS §15.12.2 Compile-Time Step 2: Determine Method Signature",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2"
+      },
+      {
+        "title": "JLS §15.12.2.2 Phase 1: Identify Matching Arity Methods Applicable by Strict Invocation",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-null-01",
+    "num": "1.38",
+    "block": "java-core",
+    "topic": "Перегрузка и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static void log(Object o)  { System.out.println(\"Object\"); }",
+        "    static void log(String s)  { System.out.println(\"String\"); }",
+        "    static void log(Integer i) { System.out.println(\"Integer\"); }",
+        "",
+        "    public static void main(String[] args) {",
+        "        log(null);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Не скомпилируется: вызов неоднозначен",
+      "Object",
+      "String",
+      "NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "`null` подходит всем трём. Выбирается самый специфичный метод: `String` и `Integer` специфичнее `Object`, но друг с другом несравнимы — «reference to log is ambiguous».\nБез `log(Integer)` вызвался бы `log(String)`. Фикс — явное приведение `log((String) null)`. Та же неоднозначность возникает, когда в библиотеку добавляют новую перегрузку, и чужой код, передающий `null`, перестаёт компилироваться.",
+    "sources": [
+      {
+        "title": "JLS §15.12.2.5 Choosing the Most Specific Method",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-list-remove-01",
+    "num": "1.39",
+    "block": "java-core",
+    "topic": "Перегрузка и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new ArrayList<>(List.of(10, 20, 1, 2));",
+        "list.remove(1);",
+        "list.remove(Integer.valueOf(1));",
+        "System.out.println(list);"
+      ]
+    },
+    "options": [
+      "[10, 2]",
+      "[20, 2]",
+      "[10, 20, 2]",
+      "[10, 1, 2]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[10, 2]"
+    },
+    "explanation": "У `List` две перегрузки: `remove(int index)` и `remove(Object o)`. Для `remove(1)` в первой фазе подходит `remove(int)` без упаковки — удаляется элемент по индексу 1, то есть `20`. `remove(Integer.valueOf(1))` удаляет значение `1`.\nБаг в проде: `ids.remove(id)` с `int id` удаляет не тот элемент или бросает `IndexOutOfBoundsException`.",
+    "sources": [
+      {
+        "title": "Javadoc: List.remove",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "JLS §15.12.2.2 Phase 1: Identify Matching Arity Methods Applicable by Strict Invocation",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-constant-inlining-01",
+    "num": "1.40",
+    "block": "java-core",
+    "topic": "Перегрузка и константы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В `lib.jar` объявлено `public static final int MAX_SIZE = 100;`, сервис использует `Limits.MAX_SIZE`. В новой версии библиотеки поставили 500 и подложили новый jar, **не пересобирая** сервис. Что увидит сервис?",
+    "options": [
+      "100: компилятор подставил значение константы в байткод сервиса",
+      "500: значение поля читается из класса `Limits` при его загрузке",
+      "`NoSuchFieldError` при первом обращении",
+      "100 до перезапуска JVM, после перезапуска — 500"
+    ],
+    "answer": 0,
+    "explanation": "`static final` поле примитивного типа или `String` с константным инициализатором — константная переменная. `javac` подставляет её значение в место использования, и ссылки на `Limits.MAX_SIZE` в байткоде сервиса нет вообще (даже класс `Limits` не загрузится).\nФормально JLS считает смену значения бинарно совместимой (ошибок линковки не будет), но старые бинарники молча видят старое значение до перекомпиляции. Если значение может меняться, его делают не константой: метод, `static final Integer` или инициализация через вызов метода. То же касается меток `case`.",
+    "sources": [
+      {
+        "title": "JLS §13.4.9 final Fields and static Constant Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-13.html#jls-13.4.9"
+      },
+      {
+        "title": "JLS §15.29 Constant Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.29"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-order-01",
+    "num": "1.41",
+    "block": "java-core",
+    "topic": "Инициализация классов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    public static void main(String[] args) {",
+        "        new Child();",
+        "        new Child();",
+        "    }",
+        "}",
+        "class Parent {",
+        "    static { System.out.print(\"Ps \"); }",
+        "    { System.out.print(\"Pi \"); }",
+        "    Parent() { System.out.print(\"Pc \"); }",
+        "}",
+        "class Child extends Parent {",
+        "    static { System.out.print(\"Cs \"); }",
+        "    { System.out.print(\"Ci \"); }",
+        "    Child() { System.out.print(\"Cc \"); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Ps Cs Pi Pc Ci Cc Pi Pc Ci Cc",
+      "Ps Pi Pc Cs Ci Cc Pi Pc Ci Cc",
+      "Ps Cs Pi Pc Ci Cc Ps Cs Pi Pc Ci Cc",
+      "Cs Ps Ci Cc Pi Pc Ci Cc Pi Pc"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Ps Cs Pi Pc Ci Cc Pi Pc Ci Cc"
+    },
+    "explanation": "Статическая инициализация — один раз на класс, при первом активном использовании, и суперкласс инициализируется раньше подкласса: `Ps Cs`.\nСоздание объекта: конструктор `Child` сначала вызывает `super()`; конструктор `Parent` выполняет инициализаторы экземпляра `Parent` (`Pi`) и своё тело (`Pc`); затем — инициализаторы полей и блоки `Child` (`Ci`) и тело `Child` (`Cc`). Второй `new Child()` повторяет только часть экземпляра.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "JLS §12.5 Creation of New Class Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-static-order-01",
+    "num": "1.42",
+    "block": "java-core",
+    "topic": "Инициализация классов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Registry {",
+        "        static final Registry INSTANCE = new Registry();",
+        "        static int created = 0;",
+        "",
+        "        Registry() { created++; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(Registry.created);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "0",
+      "1",
+      "2",
+      "NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "0"
+    },
+    "explanation": "Статические инициализаторы выполняются в текстовом порядке. Сначала `INSTANCE = new Registry()`: конструктор делает `created++` (было 0 по умолчанию, стало 1). Затем выполняется `created = 0` и затирает единицу.\nБез инициализатора (`static int created;`) было бы `1`. Мораль: статическое поле-синглтон, чей конструктор трогает другие статические поля, объявлять после них — или избегать такой связности.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "JLS §8.3.3 Restrictions on Field References in Initializers",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.3.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-constant-trigger-01",
+    "num": "1.43",
+    "block": "java-core",
+    "topic": "Инициализация классов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа? (переменной окружения `NOPE_HOST` нет)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Config {",
+        "        static final String NAME = \"app\";",
+        "        static final String HOST = System.getenv().getOrDefault(\"NOPE_HOST\", \"localhost\");",
+        "        static { System.out.print(\"init \"); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.print(Config.NAME + \" \");",
+        "        System.out.print(Config.HOST);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "app init localhost",
+      "init app localhost",
+      "app localhost",
+      "init app init localhost"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "app init localhost"
+    },
+    "explanation": "`NAME` — константная переменная (`static final String` с константным инициализатором): компилятор подставляет `\"app\"` в место использования, и обращение к ней класс не инициализирует.\n`HOST` вычисляется вызовом метода — это обычное статическое поле, и первое обращение к нему запускает инициализацию `Config` (печатается `init`). На этом же правиле построен ленивый синглтон holder-класса.",
+    "sources": [
+      {
+        "title": "JLS §12.4.1 When Initialization Occurs",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.1"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-oop-static-hiding-01",
+    "num": "1.44",
+    "block": "java-core",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Parent {",
+        "        static String kind() { return \"parent\"; }",
+        "        String name = \"P\";",
+        "        String who() { return \"P.who\"; }",
+        "    }",
+        "    static class Child extends Parent {",
+        "        static String kind() { return \"child\"; }",
+        "        String name = \"C\";",
+        "        @Override String who() { return \"C.who\"; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Parent p = new Child();",
+        "        System.out.println(p.kind() + \" \" + p.name + \" \" + p.who());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "parent P C.who",
+      "child C C.who",
+      "parent C C.who",
+      "child P C.who"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "parent P C.who"
+    },
+    "explanation": "Виртуально диспетчеризуются только методы экземпляра. Статический метод в наследнике не переопределяет, а **скрывает** родительский: вызов выбирается по статическому типу выражения (`Parent`), даже если записан через объект.\nПоля тоже не полиморфны: `p.name` — поле `Parent`, у объекта два поля `name`. `@Override` на статическом методе — ошибка компиляции, это хороший способ поймать путаницу.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.2 Hiding (by Class Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.2"
+      },
+      {
+        "title": "JLS §8.3 Field Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-oop-override-rules-01",
+    "num": "1.45",
+    "block": "java-core",
+    "topic": "Наследование и интерфейсы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В родителе: `protected Number load() throws IOException`. Какое объявление в наследнике корректно переопределяет метод?",
+    "options": [
+      "`public Integer load()` — без `throws`",
+      "`Number load() throws IOException` — без модификатора доступа",
+      "`protected Number load() throws Exception`",
+      "`protected Object load() throws IOException`"
+    ],
+    "answer": 0,
+    "explanation": "Переопределение может расширить доступ (`protected` → `public`), сузить тип возврата до подтипа (ковариантный возврат, через синтетический bridge-метод) и объявить меньше checked-исключений или ни одного.\nНельзя: сузить доступ (package-private уже `protected`), объявить более широкое checked-исключение (`Exception` шире `IOException`), вернуть супертип. Unchecked-исключения можно добавлять свободно.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.3 Requirements in Overriding and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.3"
+      },
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-oop-private-not-overridden-01",
+    "num": "1.46",
+    "block": "java-core",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Base {",
+        "        private String tag() { return \"base\"; }",
+        "        String describe() { return tag(); }",
+        "    }",
+        "    static class Derived extends Base {",
+        "        String tag() { return \"derived\"; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(new Derived().describe());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "base",
+      "derived",
+      "Не скомпилируется: tag() в Derived конфликтует с private-методом",
+      "Не скомпилируется: Derived не видит tag()"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "base"
+    },
+    "explanation": "`private`-методы не наследуются и не переопределяются: `Derived.tag()` — совершенно отдельный метод с тем же именем. Вызов private-метода не диспетчеризуется виртуально: внутри `Base` всегда выбирается `Base.tag()` (с JDK 11 javac генерирует `invokevirtual`, но JVM выбирает разрешённый private-метод напрямую).\nЕсли на `Derived.tag()` поставить `@Override`, компилятор сообщит об ошибке — ещё одна причина ставить аннотацию всегда.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      },
+      {
+        "title": "JLS §8.4.8 Inheritance, Overriding, and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8"
+      },
+      {
+        "title": "JVMS §6.5 invokevirtual",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-6.html#jvms-6.5.invokevirtual"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-equals-overload-01",
+    "num": "1.47",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static final class Point {",
+        "        final int x, y;",
+        "        Point(int x, int y) { this.x = x; this.y = y; }",
+        "",
+        "        public boolean equals(Point o) { return o != null && x == o.x && y == o.y; }",
+        "        @Override public int hashCode() { return 31 * x + y; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        var p = new Point(1, 2);",
+        "        System.out.println(p.equals(new Point(1, 2)) + \" \" + List.of(p).contains(new Point(1, 2)));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "Не скомпилируется: equals должен принимать Object"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "`equals(Point)` — **перегрузка**, а не переопределение `equals(Object)`. Прямой вызов с аргументом типа `Point` выбирает её, а коллекции вызывают `equals(Object)` — унаследованный от `Object`, то есть сравнение ссылок.\n`@Override` на таком методе дал бы ошибку компиляции. Поэтому `equals` пишут с параметром `Object` и аннотацией, а ещё проще — `record`.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-inner-ref-01",
+    "num": "1.48",
+    "block": "java-core",
+    "topic": "Вложенные классы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Задачи из `newTask()` кладутся в долгоживущую очередь, а сам `ReportService` уже не нужен. Что верно для JDK 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class ReportService {",
+        "    private final byte[] cache = new byte[50_000_000];",
+        "    private final String name;",
+        "",
+        "    ReportService(String name) { this.name = name; }",
+        "",
+        "    class Task implements Runnable {",
+        "        public void run() { System.out.println(\"report \" + name); }",
+        "    }",
+        "    Runnable newTask() { return new Task(); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Каждая `Task` хранит `ReportService.this`, поэтому сервис вместе с 50 МБ `cache` живёт, пока жива задача",
+      "`Task` читает только `name`, поэтому javac копирует в неё строку, а не ссылку на сервис",
+      "Ссылки на внешний объект нет: начиная с JDK 18 javac её не добавляет",
+      "Ссылка есть, но слабая — GC соберёт сервис при нехватке памяти"
+    ],
+    "answer": 0,
+    "explanation": "Внутренний (нестатический) класс, который обращается к полям внешнего объекта, хранит ссылку на него в синтетическом поле `this$0`. Это сильная ссылка: внешний объект целиком, со всеми полями, достижим, пока достижима задача.\nС JDK 18 (JDK-8271623) javac не добавляет `this$0`, если inner-класс внешний экземпляр не использует и не `Serializable`. Ловушка: будь `name` константой (`private final String name = \"daily\"`), javac подставил бы строку в `run()` и ссылки бы не было. Надёжное правило: вложенный класс делать `static`, а нужные данные передавать явно.",
+    "sources": [
+      {
+        "title": "JLS §8.1.3 Inner Classes and Enclosing Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.3"
+      },
+      {
+        "title": "JDK-8271623: Omit enclosing instance fields from inner classes that don't use it",
+        "url": "https://bugs.openjdk.org/browse/JDK-8271623"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-this-lambda-01",
+    "num": "1.49",
+    "block": "java-core",
+    "topic": "Вложенные классы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    void run() {",
+        "        Runnable lambda = () -> System.out.println(this.getClass().getSimpleName());",
+        "        Runnable anon = new Runnable() {",
+        "            public void run() {",
+        "                String n = this.getClass().getSimpleName();",
+        "                System.out.println(n.isEmpty() ? \"(anonymous)\" : n);",
+        "            }",
+        "        };",
+        "        lambda.run();",
+        "        anon.run();",
+        "    }",
+        "",
+        "    public static void main(String[] args) { new Main().run(); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Main\n(anonymous)",
+      "(anonymous)\n(anonymous)",
+      "Main\nMain",
+      "Main$$Lambda\n(anonymous)"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Main\n(anonymous)"
+    },
+    "explanation": "В лямбде `this` означает то же, что в окружающем коде, — экземпляр `Main`: лямбда не вводит новой области видимости для `this`.\nАнонимный класс — настоящий класс, и `this` в нём — экземпляр анонимного класса (`getSimpleName()` у него пустой); внешний объект доступен как `Main.this`. Захват внешнего объекта у обоих — только если он используется (у анонимных классов — с JDK 18 и если класс не `Serializable`; раньше анонимный класс в нестатическом контексте захватывал его всегда).",
+    "sources": [
+      {
+        "title": "JLS §15.27.2 Lambda Body",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.2"
+      },
+      {
+        "title": "JLS §15.9.5 Anonymous Class Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-double-brace-01",
+    "num": "1.50",
+    "block": "java-core",
+    "topic": "Вложенные классы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Чем плоха «инициализация двойными скобками» в методе экземпляра?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<String, Integer> limits() {",
+        "    return new HashMap<>() {{",
+        "        put(\"free\", 10);",
+        "        put(\"pro\", 100);",
+        "    }};",
+        "}"
+      ]
+    },
+    "options": [
+      "Каждый вызов создаёт экземпляр анонимного подкласса `HashMap`, который держит ссылку на внешний объект; плюс лишний класс на каждое такое место",
+      "Ничем: это синтаксический сахар, компилятор превращает его в `Map.of`",
+      "Не скомпилируется: в анонимном классе нельзя вызывать методы суперкласса в инициализаторе",
+      "Карта получится неизменяемой, `put` позже бросит `UnsupportedOperationException`"
+    ],
+    "answer": 0,
+    "explanation": "Внешние скобки — анонимный подкласс `HashMap`, внутренние — его инициализатор экземпляра. `HashMap` сериализуем, поэтому javac сохраняет ссылку `this$0` на внешний объект даже в JDK 18+ — карта, отданная наружу или закешированная, удерживает весь объект.\nПлюс отдельный класс на каждое место использования и сюрпризы с `getClass()` в `equals`, сериализации и Jackson. Замена: `Map.of(...)` или обычное заполнение.",
+    "sources": [
+      {
+        "title": "JLS §15.9.5 Anonymous Class Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.5"
+      },
+      {
+        "title": "JLS §8.1.3 Inner Classes and Enclosing Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-valueof-01",
+    "num": "1.51",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "enum Status { ACTIVE, BLOCKED }",
+        "System.out.println(Status.valueOf(\"active\"));"
+      ]
+    },
+    "options": [
+      "IllegalArgumentException",
+      "ACTIVE",
+      "null",
+      "NoSuchElementException"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.IllegalArgumentException"
+    },
+    "explanation": "`valueOf` ищет константу по точному имени с учётом регистра и бросает `IllegalArgumentException` («No enum constant …»), а не возвращает `null`.\nДля внешнего ввода (параметры запроса, значения из БД или чужого API) лучше свой поиск: статическая `Map<String, Status>` и `Optional` либо явная обработка неизвестного значения — иначе новый статус у партнёра роняет обработку с 500.",
+    "sources": [
+      {
+        "title": "JLS §8.9.3 Enum Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9.3"
+      },
+      {
+        "title": "Javadoc: Enum.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-ordinal-db-01",
+    "num": "1.52",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Статус заказа хранится в БД как `ordinal()` (так по умолчанию делает JPA `@Enumerated`). В enum `NEW, PAID, SHIPPED` добавили `CANCELLED` между `NEW` и `PAID`. Что будет со старыми строками?",
+    "options": [
+      "Старые `PAID` прочитаются как `CANCELLED`, `SHIPPED` — как `PAID`, и без всякой ошибки",
+      "Hibernate упадёт при чтении: число в колонке не совпадёт с новым enum",
+      "Ничего: `ordinal` вычисляется из имени константы",
+      "Старые строки прочитаются как `null`"
+    ],
+    "answer": 0,
+    "explanation": "`ordinal()` — позиция константы в объявлении. Вставка, удаление или перестановка констант сдвигает номера, а данные в БД остаются прежними — значения молча меняют смысл.\nJavadoc `Enum.ordinal` прямо говорит, что прикладному коду он почти никогда не нужен. Храните имя (`@Enumerated(EnumType.STRING)`) или явный код в поле enum с конвертером.",
+    "sources": [
+      {
+        "title": "Javadoc: Enum.ordinal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      },
+      {
+        "title": "Jakarta Persistence: EnumType",
+        "url": "https://jakarta.ee/specifications/persistence/3.1/apidocs/jakarta.persistence/jakarta/persistence/EnumType.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-constant-body-01",
+    "num": "1.53",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "enum Op {",
+        "    PLUS  { int apply(int a, int b) { return a + b; } },",
+        "    TIMES { int apply(int a, int b) { return a * b; } };",
+        "",
+        "    abstract int apply(int a, int b);",
+        "}",
+        "System.out.println((Op.PLUS.getClass() == Op.class) + \" \"",
+        "        + (Op.PLUS.getDeclaringClass() == Op.class) + \" \" + Op.TIMES.apply(3, 4));"
+      ]
+    },
+    "options": [
+      "false true 12",
+      "true true 12",
+      "false false 12",
+      "true false 7"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true 12"
+    },
+    "explanation": "Константа с телом — экземпляр анонимного подкласса enum (`Op$1`), поэтому `getClass()` не равен `Op.class`. `getDeclaringClass()` возвращает сам тип enum — именно его и надо использовать в своих картах по классу и при сериализации.\nТела констант — способ реализовать «стратегию на константу» без `switch`; добавление новой константы без реализации `apply` не скомпилируется.",
+    "sources": [
+      {
+        "title": "JLS §8.9.1 Enum Constants",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9.1"
+      },
+      {
+        "title": "Javadoc: Enum.getDeclaringClass",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-singleton-recall-01",
+    "num": "1.54",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему enum — лучший способ сделать синглтон в чистой Java, и какие у него минусы?",
+    "answer_text": "- **Сериализация**: enum сериализуется по имени, при десериализации возвращается та же константа — не нужен `readResolve`, второй экземпляр не появится.\n- **Рефлексия**: `Constructor.newInstance` для enum бросает `IllegalArgumentException` («Cannot reflectively create enum objects»); обычный приватный конструктор рефлексией вызвать можно.\n- **Потокобезопасность** даром: экземпляр создаётся при инициализации класса, которую JVM выполняет под блокировкой.\n- **Минусы**: нельзя наследоваться от другого класса; создание при первом обращении к классу, без тонкой ленивости; плохо подменяется в тестах (жёсткая статическая зависимость). В Spring-приложении синглтон обычно — бин контекста, а не enum.",
+    "explanation": "Главное: гарантии единственности экземпляра даёт сама JVM, а не код автора.",
+    "sources": [
+      {
+        "title": "JLS §8.9 Enum Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9"
+      },
+      {
+        "title": "Javadoc: Constructor.newInstance",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Constructor.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-values-copy-01",
+    "num": "1.55",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "tf",
+    "level": "senior",
+    "question": "Код, который javac генерирует для `MyEnum.values()`, при каждом вызове создаёт новый массив, поэтому в горячем цикле результат стоит закешировать.",
+    "answer": true,
+    "explanation": "Верно. JLS требует лишь вернуть массив констант, но массив изменяем, поэтому отдавать внутренний нельзя: javac генерирует `return $VALUES.clone();` (видно в `javap -c`). Вызов в цикле или в часто вызываемом методе — лишние аллокации.\nОбычный приём: `private static final Op[] VALUES = values();` или `List.of(values())`, наружу — неизменяемый список.",
+    "sources": [
+      {
+        "title": "JLS §8.9.3 Enum Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9.3"
+      },
+      {
+        "title": "OpenJDK 21: javac Lower.java (генерация values())",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/jdk.compiler/share/classes/com/sun/tools/javac/comp/Lower.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-enum-enummap-01",
+    "num": "1.56",
+    "block": "java-core",
+    "topic": "Enum",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему для enum-ключей берут `EnumMap`/`EnumSet`, а не `HashMap`/`HashSet`?",
+    "options": [
+      "Внутри — массив по `ordinal` (у `EnumSet` — битовая маска): быстрее и компактнее, а обход идёт в порядке объявления констант",
+      "`HashMap` с enum-ключами работает неверно: `hashCode` enum меняется между запусками JVM",
+      "`EnumMap` потокобезопасен, а `HashMap` — нет",
+      "`EnumMap` допускает `null`-ключ, а `HashMap` — нет"
+    ],
+    "answer": 0,
+    "explanation": "`EnumMap` хранит значения в массиве, индекс — `ordinal()`, без хеширования и бакетов; `EnumSet` для enum до 64 констант — один `long` с битами. Итерация — в порядке объявления, что удобно для отчётов.\n`hashCode` у enum действительно идентичностный и разный между запусками, но в рамках одной JVM `HashMap` работает корректно. `EnumMap` не потокобезопасен и `null`-ключ запрещает (NPE).",
+    "sources": [
+      {
+        "title": "Javadoc: EnumMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/EnumMap.html"
+      },
+      {
+        "title": "Javadoc: EnumSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/EnumSet.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-invariance-01",
+    "num": "1.57",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие строки компилируются, и что будет при выполнении (4)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> ints = new ArrayList<>();",
+        "List<Number> a = ints;              // (1)",
+        "List<? extends Number> b = ints;    // (2)",
+        "List<Object> c = ints;              // (3)",
+        "Object[] d = new Integer[1];        // (4)",
+        "d[0] = \"x\";"
+      ]
+    },
+    "options": [
+      "Компилируются (2) и (4); (4) при выполнении бросит `ArrayStoreException`",
+      "Компилируются (1), (2) и (4); (4) выполнится без ошибок",
+      "Компилируется только (2)",
+      "Компилируются все; (1) и (3) бросят `ClassCastException`"
+    ],
+    "answer": 0,
+    "explanation": "Generics инвариантны: `List<Integer>` не подтип `List<Number>` и `List<Object>`, иначе через `a.add(1.5)` в список целых попал бы `Double`. Ковариантность выражается wildcard'ом: `List<? extends Number>` — но в него ничего, кроме `null`, не добавить.\nМассивы ковариантны (наследие Java 1.0), поэтому (4) компилируется, а проверка переносится в рантайм: массив помнит тип элементов и бросает `ArrayStoreException`. Generics проверяются при компиляции, и типов-аргументов в рантайме нет.",
+    "sources": [
+      {
+        "title": "JLS §4.10.2 Subtyping among Class and Interface Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.10.2"
+      },
+      {
+        "title": "JLS §10.5 Array Store Exception",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-comparable-super-01",
+    "num": "1.58",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Зачем в сигнатуре `static <T extends Comparable<? super T>> T max(Collection<? extends T> c)` написано `? super T`, а не просто `Comparable<T>`?",
+    "options": [
+      "Чтобы подходили типы, сравнимые через предка: `LocalDate` реализует `Comparable<ChronoLocalDate>`, а не `Comparable<LocalDate>`",
+      "Чтобы можно было передать коллекцию `null`-значений",
+      "Чтобы метод работал с raw-типами без предупреждений",
+      "Это нужно только ради совместимости с Java 1.4, в новом коде разницы нет"
+    ],
+    "answer": 0,
+    "explanation": "`Comparable<T>` требовал бы, чтобы `T` умел сравниваться именно с `T`. Но часто `compareTo` объявлен в предке: `LocalDate implements ChronoLocalDate, Comparable<ChronoLocalDate>`, `java.sql.Timestamp` наследует `Comparable<Date>`. С `Comparable<T>` вывод `T = LocalDate` не проходит.\n`? super T` — PECS для потребителя: компаратор «потребляет» `T`, значит подойдёт сравнивающий любой супертип. Так объявлены `Collections.max`, `Collections.sort`, `Comparator.naturalOrder`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "Javadoc: LocalDate",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/LocalDate.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-capture-helper-01",
+    "num": "1.59",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Метод не компилируется. Как исправить, не меняя публичную сигнатуру?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public static void swap(List<?> list, int i, int j) {",
+        "    list.set(i, list.get(j));   // error: incompatible types",
+        "    // ...",
+        "}"
+      ]
+    },
+    "options": [
+      "Вызвать из него приватный generic-метод `<T> void swapHelper(List<T> l, int i, int j)` — компилятор выведет `T` из захваченного типа",
+      "Никак: остаётся только сменить параметр на `List<Object>`",
+      "Добавить `@SuppressWarnings(\"unchecked\")` над методом",
+      "Заменить `?` на `? extends Object` — это снимет ограничение"
+    ],
+    "answer": 0,
+    "explanation": "Каждое использование выражения типа `List<?>` подвергается захвату (capture): `list.get(j)` возвращает свежий `CAP#1`, а `set` у другого захвата ждёт `CAP#2`, и связи между ними компилятор не видит.\nВ helper-методе захваченный тип получает имя `T` — внутри `List<T>` `get` и `set` согласованы. Это стандартный capture helper; `@SuppressWarnings` предупреждения скрывает, но ошибку не убирает, а `? extends Object` — то же самое, что `?`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      },
+      {
+        "title": "The Java Tutorials: Wildcard Capture and Helper Methods",
+        "url": "https://docs.oracle.com/javase/tutorial/java/generics/capture.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-bridge-01",
+    "num": "1.60",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static final class Money implements Comparable<Money> {",
+        "        final long cents;",
+        "        Money(long cents) { this.cents = cents; }",
+        "        public int compareTo(Money o) { return Long.compare(cents, o.cents); }",
+        "    }",
+        "",
+        "    @SuppressWarnings({\"rawtypes\", \"unchecked\"})",
+        "    public static void main(String[] args) {",
+        "        long n = Arrays.stream(Money.class.getDeclaredMethods())",
+        "                .filter(m -> m.getName().equals(\"compareTo\")).count();",
+        "        System.out.println(n);",
+        "        Comparable raw = new Money(1);",
+        "        raw.compareTo(\"1\");",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Напечатает `2`, затем `ClassCastException`",
+      "Напечатает `1`, затем `ClassCastException`",
+      "Напечатает `1`, затем `compareTo` вернёт ненулевое число",
+      "Не скомпилируется: `compareTo(String)` не подходит"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2",
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "После стирания `Comparable.compareTo` принимает `Object`, а в `Money` объявлен `compareTo(Money)`. Чтобы переопределение работало, javac генерирует синтетический bridge-метод `compareTo(Object)`, который приводит аргумент к `Money` и вызывает настоящий метод — отсюда два метода в рефлексии.\nВызов через raw-тип попадает в bridge, и приведение `String` к `Money` бросает `ClassCastException`. При обходе методов рефлексией bridge-методы отфильтровывают через `Method.isBridge()`.",
+    "sources": [
+      {
+        "title": "JLS §15.12.4.5 Create Frame, Synchronize, Transfer Control",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.5"
+      },
+      {
+        "title": "Javadoc: Method.isBridge",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Method.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-instanceof-01",
+    "num": "1.61",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`o` имеет тип `Object`, `T` — параметр типа метода. Что из этого компилируется в Java 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "if (o instanceof List<String> l) { }   // (1)",
+        "if (o instanceof List<?> l) { }        // (2)",
+        "T t = new T();                          // (3)",
+        "Class<T> k = T.class;                   // (4)"
+      ]
+    },
+    "options": [
+      "Только (2)",
+      "(1) и (2)",
+      "(2) и (4)",
+      "Все, кроме (3)"
+    ],
+    "answer": 0,
+    "explanation": "Аргументы типа стираются, в рантайме `List<String>` неотличим от `List<Integer>`. Поэтому `instanceof` с конкретным параметризованным типом разрешён, только если проверка безопасна статически (например, выражение уже `Collection<String>`); из `Object` — ошибка. `List<?>` — reifiable-тип, проверка возможна.\n`new T()` и `T.class` невозможны по той же причине: `T` в рантайме нет. Обходной путь — передать `Class<T>` или `Supplier<T>` параметром.",
+    "sources": [
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-type-token-recall-01",
+    "num": "1.62",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "recall",
+    "level": "senior",
+    "question": "Типы-аргументы стираются. Как тогда Jackson (`TypeReference`) и Spring (`ParameterizedTypeReference`) узнают, что нужен именно `List<User>`?",
+    "answer_text": "- В рантайме объект `ArrayList<User>` ничего не знает про `User`, а вот **объявления** сохраняют параметризованные типы в атрибуте `Signature` class-файла: суперкласс, интерфейсы, типы полей, параметры и возврат методов.\n- `new TypeReference<List<User>>() {}` — это анонимный **подкласс**, в объявлении которого суперкласс записан как `TypeReference<List<User>>`. `getClass().getGenericSuperclass()` возвращает `ParameterizedType`, из него достают `List<User>`.\n- Поэтому важны фигурные скобки `{}`: без подкласса информации нет. Тот же приём называют super type token (Gafter).\n- Альтернатива без подклассов — передавать `Class<T>` или фабрику, но для вложенных параметризованных типов `Class` недостаточно.",
+    "explanation": "Ключ: стираются типы переменных и объектов, но не объявления классов, полей и методов.",
+    "sources": [
+      {
+        "title": "Javadoc: Class.getGenericSuperclass",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JVMS §4.7.9 The Signature Attribute",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-4.html#jvms-4.7.9"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-safevarargs-01",
+    "num": "1.63",
+    "block": "java-core",
+    "topic": "Generics",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что верно про `@SafeVarargs`?",
+    "options": [
+      "Ставится только на методы, которые нельзя переопределить (`static`, `final`, `private`), и на конструкторы; это обещание автора, что метод не пишет в массив varargs чужие типы и не отдаёт его наружу",
+      "Заставляет компилятор проверять типы элементов varargs-массива в рантайме",
+      "Ставится на любой метод с generic-varargs и убирает предупреждение и у вызывающих, и у наследников",
+      "Делает varargs-массив неизменяемым"
+    ],
+    "answer": 0,
+    "explanation": "Массив для `T...` создаётся как `Object[]` или массив стёртого типа — это потенциальное загрязнение кучи, и javac предупреждает и в объявлении, и в местах вызова. `@SafeVarargs` подавляет предупреждения, но ничего не проверяет: это контракт автора.\nРазрешена только там, где метод нельзя переопределить (иначе наследник нарушил бы обещание): `static`, `final`, `private` (с Java 9) методы и конструкторы. Пример честного метода — `List.of(E...)`.",
+    "sources": [
+      {
+        "title": "JLS §9.6.4.7 @SafeVarargs",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.6.4.7"
+      },
+      {
+        "title": "Javadoc: SafeVarargs",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/SafeVarargs.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-exceptions-twr-init-fail-01",
+    "num": "1.64",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Res(String name) implements AutoCloseable {",
+        "    Res {",
+        "        Objects.requireNonNull(name);",
+        "        System.out.print(\"open \" + name + \"; \");",
+        "    }",
+        "    public void close() { System.out.print(\"close \" + name + \"; \"); }",
+        "}",
+        "try (var a = new Res(\"A\"); var b = new Res(null)) {",
+        "    System.out.print(\"body; \");",
+        "} catch (NullPointerException e) {",
+        "    System.out.print(\"catch NPE\");",
+        "}"
+      ]
+    },
+    "options": [
+      "open A; close A; catch NPE",
+      "open A; catch NPE",
+      "open A; close A; close null; catch NPE",
+      "catch NPE"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "open A; close A; catch NPE"
+    },
+    "explanation": "Ресурсы инициализируются по порядку. Если инициализация второго бросает исключение, тело не выполняется, а уже открытые ресурсы закрываются в обратном порядке — `A` закрыт. Неоткрытый `b` не закрывается: закрывать нечего.\nЭто главное преимущество перед ручным `try/finally` с несколькими ресурсами, где легко забыть закрыть первый при ошибке открытия второго.",
+    "sources": [
+      {
+        "title": "JLS §14.20.3.1 Basic try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3.1"
+      },
+      {
+        "title": "JLS §14.20.3 try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-exceptions-checked-lambda-01",
+    "num": "1.65",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему не компилируется и как правильно исправить?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "void printAll(List<Path> files) throws IOException {",
+        "    files.forEach(p -> System.out.println(Files.readString(p)));",
+        "}"
+      ]
+    },
+    "options": [
+      "`Consumer.accept` не объявляет checked-исключений: `IOException` надо поймать внутри лямбды (и, например, обернуть в `UncheckedIOException`) или написать обычный цикл `for`",
+      "`throws IOException` на `printAll` уже покрывает лямбду — ошибка в другом: `forEach` нельзя вызывать на `List<Path>`",
+      "Лямбда не может вызывать статические методы других классов",
+      "`Files.readString` возвращает `Optional<String>`, нужен `.get()`"
+    ],
+    "answer": 0,
+    "explanation": "Тело лямбды — реализация метода функционального интерфейса, и проверка исключений идёт относительно его `throws`. У `Consumer.accept` его нет, поэтому `throws` объемлющего метода не помогает.\nВарианты: `try/catch` внутри лямбды с `UncheckedIOException`, свой функциональный интерфейс с `throws IOException`, или просто цикл `for` — он сохраняет checked-исключение и читается проще.",
+    "sources": [
+      {
+        "title": "JLS §11.2.3 Exception Checking",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2.3"
+      },
+      {
+        "title": "JLS §15.27.3 Type of a Lambda Expression",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.3"
+      },
+      {
+        "title": "Javadoc: UncheckedIOException",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/UncheckedIOException.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-exceptions-fast-throw-01",
+    "num": "1.66",
+    "block": "java-core",
+    "topic": "Исключения",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В логах прода NPE без стектрейса: только `java.lang.NullPointerException` и ни одной строки `at …`. Первые часы после деплоя стектрейсы были. Почему?",
+    "options": [
+      "HotSpot (`OmitStackTraceInFastThrow`, включён по умолчанию): после многократного броска в скомпилированном коде C2 подменяет исключение заранее созданным, без стека",
+      "Логгер обрезает стектрейсы, когда в секунду их больше определённого числа",
+      "У NPE из нативного кода не бывает стека",
+      "Helpful NullPointerExceptions (JEP 358) заменяют стек на подробное сообщение"
+    ],
+    "answer": 0,
+    "explanation": "Для «горячих» неявных исключений (NPE, `ArithmeticException`, `ArrayIndexOutOfBounds`, `ClassCastException` и др.) оптимизированный C2 код после многих бросков начинает выбрасывать преаллоцированный экземпляр без стека и без сообщения — ради скорости.\nЧто делать: искать первые вхождения той же ошибки в логах после рестарта, либо запускать с `-XX:-OmitStackTraceInFastThrow`. JEP 358 добавляет сообщение (`Cannot invoke … because … is null`), но стек не убирает.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: globals.hpp — OmitStackTraceInFastThrow",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/hotspot/share/runtime/globals.hpp"
+      },
+      {
+        "title": "JEP 358: Helpful NullPointerExceptions",
+        "url": "https://openjdk.org/jeps/358"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-final-not-immutable-01",
+    "num": "1.67",
+    "block": "java-core",
+    "topic": "Объекты и неизменяемость",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "final class Team {",
+        "    private final List<String> members;",
+        "    Team(List<String> members) { this.members = members; }",
+        "    List<String> members() { return members; }",
+        "}",
+        "var src = new ArrayList<>(List.of(\"ann\"));",
+        "var team = new Team(src);",
+        "src.add(\"bob\");",
+        "team.members().add(\"eve\");",
+        "System.out.println(team.members());"
+      ]
+    },
+    "options": [
+      "[ann, bob, eve]",
+      "[ann]",
+      "[ann, bob]",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[ann, bob, eve]"
+    },
+    "explanation": "`final` запрещает переприсвоить ссылку, но не менять объект по ней. `Team` хранит чужой изменяемый список и отдаёт его наружу — состояние меняют и создатель, и любой получатель.\nЗащитные копии: в конструкторе `this.members = List.copyOf(members)` (неизменяемая копия, заодно отвергает `null`), тогда геттер может отдавать поле как есть. Для `record` — то же в компактном конструкторе.",
+    "sources": [
+      {
+        "title": "Javadoc: List.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-clone-shallow-01",
+    "num": "1.68",
+    "block": "java-core",
+    "topic": "Объекты и неизменяемость",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[][] grid = {{1, 2}, {3, 4}};",
+        "int[][] copy = grid.clone();",
+        "copy[0][0] = 9;",
+        "copy[1] = new int[]{7, 7};",
+        "System.out.println(grid[0][0] + \" \" + grid[1][0]);"
+      ]
+    },
+    "options": [
+      "9 3",
+      "1 3",
+      "9 7",
+      "1 7"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "9 3"
+    },
+    "explanation": "`clone()` массива — поверхностная копия: новый внешний массив с теми же ссылками на внутренние строки. Изменение `copy[0][0]` видно через `grid`, а замена целой строки `copy[1]` — нет.\nГлубокая копия двумерного массива — копировать каждую строку (`Arrays.stream(grid).map(int[]::clone).toArray(int[][]::new)`). То же верно для `ArrayList(Collection)`, `List.copyOf` и `Object.clone` по умолчанию.",
+    "sources": [
+      {
+        "title": "JLS §10.7 Array Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.7"
+      },
+      {
+        "title": "Javadoc: Object.clone",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-arrays-equals-01",
+    "num": "1.69",
+    "block": "java-core",
+    "topic": "Объекты и неизменяемость",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[] a = {1, 2};",
+        "int[] b = {1, 2};",
+        "System.out.println(a.equals(b) + \" \" + Arrays.equals(a, b) + \" \"",
+        "        + Objects.equals(a, b) + \" \" + (Arrays.hashCode(a) == Arrays.hashCode(b)));"
+      ]
+    },
+    "options": [
+      "false true false true",
+      "true true true true",
+      "false true true true",
+      "false false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true false true"
+    },
+    "explanation": "Массивы не переопределяют `equals` и `hashCode` — это методы `Object`, сравнение ссылок. `Objects.equals` лишь добавляет проверку на `null` и вызывает тот же `equals`. Сравнение по содержимому — `Arrays.equals`/`Arrays.hashCode` (для вложенных — `deepEquals`).\nОтсюда баги: массив как ключ `HashMap` или поле `record` (сгенерированный `equals` сравнит ссылки).",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "Javadoc: Objects.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-serialization-recall-01",
+    "num": "1.70",
+    "block": "java-core",
+    "topic": "Объекты и неизменяемость",
+    "type": "recall",
+    "level": "senior",
+    "question": "Чем опасна встроенная Java-сериализация (`Serializable`) и что использовать вместо неё?",
+    "answer_text": "- **Безопасность**: десериализация недоверенных байтов может выполнить код через цепочки «гаджетов» из классов на classpath (громкие RCE в Commons Collections, WebLogic и т. п.). Защита — фильтры десериализации (JEP 290, JEP 415), а лучше не принимать сериализованные объекты извне вообще.\n- **Обход конструкторов**: объект создаётся без вызова конструктора класса, инварианты и проверки не выполняются (кроме `record` — они создаются через канонический конструктор).\n- **Хрупкость**: без явного `serialVersionUID` он вычисляется из структуры класса (имя, модификаторы, интерфейсы, поля, не-private методы и конструкторы), и многие безобидные изменения — новый метод, поле, модификатор — дают `InvalidClassException`. Сериализованная форма становится публичным API, который надо поддерживать.\n- **Вместо**: JSON/Protobuf/Avro с явной схемой; для кешей и очередей — те же форматы. Если `Serializable` нужен (сессии, старые API) — явный `serialVersionUID` и минимальная форма.",
+    "explanation": "Две проблемы: безопасность при чтении чужих данных и хрупкость формата.",
+    "sources": [
+      {
+        "title": "Javadoc: Serializable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/Serializable.html"
+      },
+      {
+        "title": "JEP 290: Filter Incoming Serialization Data",
+        "url": "https://openjdk.org/jeps/290"
+      },
+      {
+        "title": "JEP 415: Context-Specific Deserialization Filters",
+        "url": "https://openjdk.org/jeps/415"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
   }
 ]
