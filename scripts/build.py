@@ -27,7 +27,9 @@ LANGS = {"java", "kotlin", "sql", "js", "ts", "yaml", "bash", "json", "text"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-COMMON = {"id", "block", "topic", "type", "level", "question", "code", "explanation",
+NUM_RE = re.compile(r"^[1-9]\d*\.[1-9]\d*$")
+
+COMMON = {"id", "num", "block", "topic", "type", "level", "question", "code", "explanation",
           "sources", "java_version", "verified"}
 ALLOWED = {
     "mcq": COMMON | {"options", "answer"},
@@ -134,6 +136,7 @@ def load_all():
     errors = []
     blocks = json.loads((DATA / "blocks.json").read_text(encoding="utf-8"))
     ids = set()
+    nums = set()
     questions = []
     seen_blocks = set()
     for b in blocks:
@@ -161,6 +164,14 @@ def load_all():
             if qid in ids:
                 errors.append(f"{b['id']}/{qid}: id не уникален")
             ids.add(qid)
+            num = q.get("num") if isinstance(q, dict) else None
+            if not (isinstance(num, str) and NUM_RE.match(num)):
+                errors.append(f"{b['id']}/{qid}: num — строка вида «<order блока>.<номер>», например 1.25")
+            elif num.split(".")[0] != str(b["order"]):
+                errors.append(f"{b['id']}/{qid}: num {num} должен начинаться с {b['order']}. (order блока)")
+            elif num in nums:
+                errors.append(f"{b['id']}/{qid}: num {num} не уникален")
+            nums.add(num)
             questions.append(q)
     for f in DATA.glob("*.json"):
         if f.name != "blocks.json" and f.stem not in seen_blocks:

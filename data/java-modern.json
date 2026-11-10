@@ -1,0 +1,459 @@
+[
+  {
+    "id": "java-core-records-array-component-01",
+    "num": "4.1",
+    "block": "java-modern",
+    "topic": "Records",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Data(int[] values) {}",
+        "var a = new Data(new int[]{1, 2});",
+        "var b = new Data(new int[]{1, 2});",
+        "System.out.println(a.equals(b) + \" \" + Arrays.equals(a.values(), b.values()));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "false false",
+      "Не скомпилируется: компонент записи не может быть массивом"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "Сгенерированный `equals` записи сравнивает ссылочные компоненты через `Objects.equals` — для массивов это сравнение ссылок. Содержимое равно, но массивы — разные объекты.\nК тому же массив в record ломает неизменяемость: аксессор отдаёт ссылку на тот же массив. Лечится переопределением `equals`/`hashCode`/`toString` и защитными копиями — или `List<Integer>` вместо массива.",
+    "sources": [
+      {
+        "title": "Javadoc: Record.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      },
+      {
+        "title": "JLS §8.10.3 Record Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-compact-ctor-01",
+    "num": "4.2",
+    "block": "java-modern",
+    "topic": "Records",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что можно делать в компактном каноническом конструкторе записи?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record User(String name) {",
+        "    User {          // компактный конструктор: без списка параметров",
+        "        // ... что здесь допустимо?",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Проверить и переприсвоить параметр (`name = name.strip();`) — поле присвоится из него автоматически после тела",
+      "Присвоить поле явно: `this.name = name.strip();`",
+      "Делегировать другому конструктору через `this(...)`",
+      "Ничего из перечисленного: компактный конструктор допустим, только если в записи нет других конструкторов"
+    ],
+    "answer": 0,
+    "explanation": "В компактном конструкторе параметры объявлены неявно; после его тела поля присваиваются из них автоматически. Значит, параметр можно проверить и переприсвоить (`name = name.strip();`).\nПрисваивать полю записи в теле компактного конструктора — ошибка компиляции. Канонический конструктор не может вызывать `this(...)`. Дополнительные (неканонические) конструкторы объявлять можно, но они обязаны начинаться с `this(...)`.",
+    "sources": [
+      {
+        "title": "JLS §8.10.4 Record Constructor Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.4"
+      },
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-extends-01",
+    "num": "4.3",
+    "block": "java-modern",
+    "topic": "Records",
+    "type": "tf",
+    "level": "senior",
+    "question": "Record может наследоваться от абстрактного класса, если не добавляет полей экземпляра.",
+    "answer": false,
+    "explanation": "Прямой суперкласс записи — всегда `java.lang.Record`; `extends` в объявлении записи запрещён. Запись неявно `final`, от неё тоже нельзя наследоваться.\nРеализовывать интерфейсы можно — так записи и становятся листьями sealed-иерархий. Дополнительные поля экземпляра объявлять нельзя, статические — можно.",
+    "sources": [
+      {
+        "title": "JLS §8.10 Record Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10"
+      },
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-records-vs-lombok-recall-01",
+    "num": "4.4",
+    "block": "java-modern",
+    "topic": "Records",
+    "type": "recall",
+    "level": "senior",
+    "question": "Чем `record` по существу отличается от `final`-класса с Lombok `@Value`, кроме краткости?",
+    "answer_text": "Состояние записи — это ровно её компоненты, и язык это гарантирует:\n- скрытых полей экземпляра и наследования нет; аксессоры, `equals`, `hashCode` и `toString` выводятся из компонентов;\n- деконструкция: record patterns (`o instanceof Point(var x, var y)`, Java 21) работают только с записями;\n- сериализация: запись восстанавливается через канонический конструктор, поэтому инварианты из конструктора проверяются и при десериализации;\n- рефлексия знает о компонентах: `Class.getRecordComponents()`.\n\nЦена: нет ленивых или вычисляемых полей экземпляра, нельзя сделать JPA-сущностью (класс сущности не может быть `final`, нужны no-arg конструктор и не-final поля), а глубокая неизменяемость (массивы, коллекции) — на тебе.",
+    "explanation": "Ключевое: record — языковая семантика «прозрачного носителя данных», и на неё опираются паттерны, сериализация и рефлексия.",
+    "sources": [
+      {
+        "title": "JEP 395: Records",
+        "url": "https://openjdk.org/jeps/395"
+      },
+      {
+        "title": "Javadoc: Record",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      },
+      {
+        "title": "Java Object Serialization Spec: Serialization of Records",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/specs/serialization/serial-arch.html#serialization-of-records"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-permitted-01",
+    "num": "4.5",
+    "block": "java-modern",
+    "topic": "Sealed",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какое требование к прямому наследнику, перечисленному в `permits` sealed-класса, верно?",
+    "options": [
+      "Он обязан быть `final`, `sealed` или `non-sealed` (record уже неявно `final`)",
+      "Он должен находиться в том же исходном файле",
+      "Он должен быть `record` или `enum`",
+      "Он должен лежать в том же пакете, даже если sealed-класс в именованном модуле"
+    ],
+    "answer": 0,
+    "explanation": "Каждый разрешённый наследник явно выбирает, как продолжается иерархия: `final` — закрыта, `sealed` — закрыта своим списком, `non-sealed` — снова открыта. Запись неявно `final`, поэтому ей модификатор не нужен.\nВ именованном модуле наследники могут лежать в других пакетах того же модуля; в безымянном — только в том же пакете. Один файл нужен, лишь когда `permits` опущен: тогда наследники выводятся из этой единицы компиляции.",
+    "sources": [
+      {
+        "title": "JLS §8.1.1.2 sealed, non-sealed, and final Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.1.2"
+      },
+      {
+        "title": "JLS §8.1.6 Permitted Direct Subclasses",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.6"
+      },
+      {
+        "title": "JEP 409: Sealed Classes",
+        "url": "https://openjdk.org/jeps/409"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-exhaustive-switch-01",
+    "num": "4.6",
+    "block": "java-modern",
+    "topic": "Sealed",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Иерархия закрыта через `sealed`, switch написан без `default`. Чем это лучше варианта с `default`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "sealed interface Shape permits Circle, Square {}",
+        "record Circle(double r) implements Shape {}",
+        "record Square(double side) implements Shape {}",
+        "",
+        "double area(Shape shape) {",
+        "    return switch (shape) {",
+        "        case Circle c -> Math.PI * c.r() * c.r();",
+        "        case Square s -> s.side() * s.side();",
+        "    }; // default нет",
+        "}"
+      ]
+    },
+    "options": [
+      "Добавление нового наследника в `permits` сломает компиляцию всех таких switch — ни один случай не забудется",
+      "Он быстрее: без `default` JIT строит таблицу переходов",
+      "Без `default` switch не нужно перекомпилировать при добавлении наследника",
+      "Разницы нет: новый наследник без перекомпиляции switch в обоих случаях молча уйдёт в ветку по умолчанию"
+    ],
+    "answer": 0,
+    "explanation": "Switch по sealed-типу, перечисляющий всех наследников, исчерпывающий, и `default` не нужен. Главная выгода — компилятор становится чек-листом: добавил `Triangle` в `permits`, и каждый такой switch перестал компилироваться. С `default` новый тип молча ушёл бы в ветку по умолчанию.\nЕсли иерархию поменяли и перекомпилировали без этого switch, в рантайме он бросит `MatchException` (Java 21): javac сам вставляет такой синтетический `default`. `null` по-прежнему даёт NPE, если нет `case null`.",
+    "sources": [
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      },
+      {
+        "title": "JLS §14.11.1.1 Exhaustive Switch Blocks",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.1.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-eval-01",
+    "num": "4.7",
+    "block": "java-modern",
+    "topic": "Sealed",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    sealed interface Expr permits Num, Add, Neg {}",
+        "    record Num(int v) implements Expr {}",
+        "    record Add(Expr l, Expr r) implements Expr {}",
+        "    record Neg(Expr e) implements Expr {}",
+        "",
+        "    static int eval(Expr e) {",
+        "        return switch (e) {",
+        "            case Num n -> n.v();",
+        "            case Add(var l, var r) -> eval(l) + eval(r);",
+        "            case Neg(Num(var v)) -> -v;",
+        "            case Neg(var inner) -> -eval(inner);",
+        "        };",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(eval(new Add(new Num(2), new Neg(new Add(new Num(3), new Num(4))))));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "-5",
+      "9",
+      "5",
+      "Не скомпилируется: switch не исчерпывающий без default"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-5"
+    },
+    "explanation": "`Add(2, Neg(Add(3, 4)))` = 2 + −(3 + 4) = −5. Внутренний `Neg` содержит не `Num`, поэтому срабатывает `case Neg(var inner)`.\nSwitch исчерпывающий без `default`: `Expr` sealed, а `case Neg(var inner)` покрывает все `Neg`. Порядок важен: более узкий `Neg(Num(var v))` стоит перед общим — наоборот было бы ошибкой доминирования.",
+    "sources": [
+      {
+        "title": "JEP 440: Record Patterns",
+        "url": "https://openjdk.org/jeps/440"
+      },
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-sealed-why-recall-01",
+    "num": "4.8",
+    "block": "java-modern",
+    "topic": "Sealed",
+    "type": "recall",
+    "level": "senior",
+    "question": "Зачем sealed-классы, если уже есть `final` и package-private конструкторы?",
+    "answer_text": "`final` запрещает наследование вовсе, package-private конструктор ограничивает его пакетом, но ни то ни другое не даёт компилятору полного списка наследников. Sealed делает иерархию закрытой и известной:\n- исчерпывающие `switch` и паттерны без `default` — компилятор проверяет, что разобраны все случаи;\n- публичный интерфейс можно отдать наружу, не разрешая чужих реализаций (раньше — только документацией; у классов был package-private конструктор);\n- алгебраические типы данных: sum types (sealed) + product types (records).\n\n`non-sealed` позволяет снова открыть отдельную ветку иерархии.",
+    "explanation": "Ключевое: sealed сообщает компилятору полный список наследников — это даёт исчерпывающие switch и алгебраические типы.",
+    "sources": [
+      {
+        "title": "JEP 409: Sealed Classes",
+        "url": "https://openjdk.org/jeps/409"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-switch-null-01",
+    "num": "4.9",
+    "block": "java-modern",
+    "topic": "Pattern matching",
+    "type": "tf",
+    "level": "senior",
+    "question": "Если в `switch (obj)` с паттернами нет `case null`, а `obj == null`, управление уйдёт в `default`.",
+    "answer": false,
+    "explanation": "Без `case null` switch по-прежнему бросает `NullPointerException` при null-селекторе: `default` null не ловит — ради совместимости со старым поведением switch.\nЧтобы обработать null, нужен явный `case null ->` или совмещённый `case null, default ->`.",
+    "sources": [
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      },
+      {
+        "title": "JLS §14.11.3 Execution of a switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-dominance-01",
+    "num": "4.10",
+    "block": "java-modern",
+    "topic": "Pattern matching",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Object o = 42;",
+        "String r = switch (o) {",
+        "    case Integer i -> \"int\";",
+        "    case Integer i when i > 10 -> \"big\";",
+        "    default -> \"other\";",
+        "};",
+        "System.out.println(r);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "int",
+      "big",
+      "other"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "`case Integer i` без guard покрывает все `Integer`, поэтому следующая `case Integer i when i > 10` недостижима — это ошибка компиляции (метка доминируется предыдущей).\nСпецифичные метки и метки с guard пишутся раньше общих. Паттерн-метка после `default` — тоже ошибка доминирования.",
+    "sources": [
+      {
+        "title": "JLS §14.11.1 Switch Blocks (dominance)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.1"
+      },
+      {
+        "title": "JEP 441: Pattern Matching for switch",
+        "url": "https://openjdk.org/jeps/441"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-nested-record-01",
+    "num": "4.11",
+    "block": "java-modern",
+    "topic": "Pattern matching",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Point(int x, int y) {}",
+        "record Line(Point a, Point b) {}",
+        "Object o = new Line(new Point(1, 2), new Point(3, 4));",
+        "if (o instanceof Line(Point(var x1, var y1), Point p2) && x1 < p2.x()) {",
+        "    System.out.println(x1 + y1 + p2.y());",
+        "}"
+      ]
+    },
+    "options": [
+      "7",
+      "124",
+      "Ничего не напечатает",
+      "Не скомпилируется: нельзя смешивать `var` и именованный паттерн"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "7"
+    },
+    "explanation": "Record patterns (Java 21, JEP 440) можно вкладывать и смешивать с `var` и обычными type patterns. Переменные паттернов доступны справа от `&&` и в теле `if`.\nСложение целочисленное: все три операнда `int`, строк в выражении нет, поэтому 1 + 2 + 4 = 7.",
+    "sources": [
+      {
+        "title": "JEP 440: Record Patterns",
+        "url": "https://openjdk.org/jeps/440"
+      },
+      {
+        "title": "JLS §14.30.1 Kinds of Patterns",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.30.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-patterns-flow-scoping-01",
+    "num": "4.12",
+    "block": "java-modern",
+    "topic": "Pattern matching",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какой фрагмент (тело метода с параметром `Object o`) компилируется?",
+    "options": [
+      "`if (!(o instanceof String s)) return; System.out.println(s.length());`",
+      "`if (o instanceof String s || s.isEmpty()) { }`",
+      "`if (!(o instanceof String s)) { System.out.println(s); }`",
+      "`boolean b = o instanceof String s; System.out.println(s);`"
+    ],
+    "answer": 0,
+    "explanation": "Переменная паттерна видна там, где сопоставление *точно* удалось (flow scoping). После `if (!(o instanceof String s)) return;` дальше по коду `s` определённо присвоена.\nВ `a || s.isEmpty()` правая часть выполняется как раз когда сопоставление не удалось. В `if (!(...)) { … s … }` — тоже. А у `boolean b = o instanceof String s;` область `s` не выходит за пределы выражения.",
+    "sources": [
+      {
+        "title": "JLS §6.3.1 Scope for Pattern Variables in Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-6.html#jls-6.3.1"
+      },
+      {
+        "title": "JEP 394: Pattern Matching for instanceof",
+        "url": "https://openjdk.org/jeps/394"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]

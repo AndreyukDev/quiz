@@ -12,7 +12,7 @@ const DAY = 86400000;
 const INTERVAL_DAYS = [0, 0, 3, 7, 14, 30];
 const SIZES = [5, 10, 12, 15, 20];
 
-function defaults() { return {progress: {}, settings: {size: 12}}; }
+function defaults() { return {progress: {}, settings: {size: 12, pick: null}}; }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -162,7 +162,17 @@ function render() {
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
 
 // ---------- выборка сессии ----------
-function blockQuestions(blockId) { return blockId ? questions.filter(q => q.block === blockId) : questions; }
+// sel: id блока, массив id или null (все блоки)
+function blockQuestions(sel) {
+  if (!sel) return questions;
+  const set = new Set([].concat(sel));
+  return questions.filter(q => set.has(q.block));
+}
+// выбранные для случайного режима блоки (по умолчанию — все)
+function picked() {
+  const ids = (store.settings.pick || blocks.map(b => b.id)).filter(id => blockById.has(id));
+  return ids;
+}
 function counts(qs) {
   const now = Date.now();
   const c = {total: qs.length, fresh: 0, due: 0, learned: 0, next: null, boxes: [0, 0, 0, 0, 0, 0], n: 0, w: 0};
@@ -178,8 +188,14 @@ function counts(qs) {
 }
 
 let session = null;
-function startSession(blockId, early = false) {
+// random: случайные карточки из выбранных блоков без учёта расписания; ответы всё равно двигают коробки
+function startSession(blockId, early = false, random = false) {
   const now = Date.now(), size = store.settings.size;
+  if (random) {
+    session = {blockId, items: shuffle(blockQuestions(blockId).slice()).slice(0, size), i: 0, results: [], early, random};
+    go('#/q');
+    return;
+  }
   const due = [], fresh = [], later = [];
   for (const q of blockQuestions(blockId)) {
     const p = P(q);
@@ -195,6 +211,7 @@ function startSession(blockId, early = false) {
 // ---------- экраны ----------
 function renderHome() {
   const all = counts(questions);
+  const pick = picked(), pickN = blockQuestions(pick).length;
   const blockRows = blocks.map(b => {
     const c = counts(blockQuestions(b.id));
     const badge = c.due ? `<span class="badge">${c.due}</span>` : `<span class="badge zero">${c.fresh ? 'новые' : '✓'}</span>`;
@@ -208,12 +225,21 @@ function renderHome() {
     <button class="btn primary" data-act="mix">Микс недели · ${Math.min(store.settings.size, all.due + all.fresh) || 'всё повторено'}</button>
     <p class="muted">К повторению: ${all.due} · новых: ${all.fresh} · выучено: ${all.learned} из ${all.total}</p>
     <h2>Блоки</h2>${blockRows}
+    <div class="card"><div class="muted" style="margin-bottom:8px">Случайный режим: вопросы вперемешку из отмеченных разделов, без учёта расписания</div>
+      <div class="chips">${blocks.map(b => `<button class="chip${pick.includes(b.id) ? ' on' : ''}" data-act="toggle" data-id="${esc(b.id)}" aria-pressed="${pick.includes(b.id)}">${esc(b.icon)} ${esc(b.title)}</button>`).join('')}</div>
+      <button class="btn" data-act="random" style="text-align:center;margin:12px 0 0"${pickN ? '' : ' disabled'}>🎲 Случайно · ${pickN ? pickN + ' карт.' : 'отметь разделы'}</button></div>
     <div class="card settings"><span>Карточек в сессии</span>
       <select id="size">${SIZES.map(s => `<option${s === store.settings.size ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
     <div class="row"><button class="btn ghost" data-act="stats">📊 Статистика</button><button class="btn ghost" data-act="backup">💾 Копия</button></div>
     <p class="muted" style="text-align:center">версия ${esc(VERSION)}</p></div>`, {
     mix: () => startSession(null),
     block: el => startSession(el.dataset.id),
+    toggle: el => {
+      const id = el.dataset.id, cur = picked();
+      store.settings.pick = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id);
+      save(); render();
+    },
+    random: () => { if (pick.length) startSession(pick, false, true); },
     stats: () => go('#/stats'),
     backup: () => go('#/backup'),
   });
@@ -242,7 +268,7 @@ function renderQuiz() {
   view(`<div class="top"><button class="x" data-act="quit" aria-label="Выйти">✕</button>
       <div class="bar"><i style="width:${s.i / s.items.length * 100}%"></i></div><div class="count">${s.i + 1}/${s.items.length}</div></div>
     <section class="card fade">
-      <div class="topic">${b ? esc(b.icon) + ' ' : ''}${esc(q.topic)} · ${TYPE_LABEL[q.type]}</div>
+      <div class="topic">${b ? esc(b.icon) + ' ' : ''}<b>${esc(q.num)}</b> · ${esc(q.topic)} · ${TYPE_LABEL[q.type]}</div>
       <div class="q">${md(q.question)}</div>
       ${q.code ? codeBlock(q) : ''}
       <div id="opts">${opts}</div>
@@ -324,14 +350,14 @@ function renderDone() {
   const short = t => { const s = t.replace(/[`*]/g, ''); return s.length > 70 ? s.slice(0, 70) + '…' : s; };
   view(`<div class="card fade">
       <div class="big">${ok}/${r.length}</div>
-      <p class="muted" style="text-align:center">Ошибки вернутся в следующей сессии, верные — позже.</p>
-      <ul class="result-list">${r.map(x => `<li>${mark[x.res]} <b>${esc(x.q.topic)}</b> — ${esc(short(x.q.question))}</li>`).join('')}</ul>
+      <p class="muted" style="text-align:center">${session.random ? 'Ответы учтены в прогрессе: ошибки уходят в коробку 1.' : 'Ошибки вернутся в следующей сессии, верные — позже.'}</p>
+      <ul class="result-list">${r.map(x => `<li>${mark[x.res]} ${esc(x.q.num)} <b>${esc(x.q.topic)}</b> — ${esc(short(x.q.question))}</li>`).join('')}</ul>
     </div>
     <button class="btn primary" data-act="again">Ещё сессия</button>
     <button class="btn ghost" data-act="home">Домой</button>`, {
-    again: () => startSession(session.blockId),
+    again: () => startSession(session.blockId, false, session.random),
     home: () => { session = null; go('#/'); },
-  }, e => { if (e.key === 'Enter') { e.preventDefault(); startSession(session.blockId); } });
+  }, e => { if (e.key === 'Enter') { e.preventDefault(); startSession(session.blockId, false, session.random); } });
 }
 
 const BOX_COLORS = ['var(--line)', 'var(--bad)', '#f97316', '#eab308', '#84cc16', 'var(--ok)'];

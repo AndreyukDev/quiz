@@ -1,0 +1,439 @@
+[
+  {
+    "id": "java-core-streams-lazy-shortcircuit-01",
+    "num": "3.1",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Stream.of(1, 2, 3, 4)",
+        "    .filter(x -> { System.out.print(\"f\" + x + \" \"); return x % 2 == 0; })",
+        "    .map(x -> { System.out.print(\"m\" + x + \" \"); return x * 10; })",
+        "    .findFirst()",
+        "    .ifPresent(System.out::println);"
+      ]
+    },
+    "options": [
+      "f1 f2 m2 20",
+      "f1 f2 f3 f4 m2 m4 20",
+      "f1 m1 f2 m2 20",
+      "f1 f2 f3 f4 m2 20"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "f1 f2 m2 20"
+    },
+    "explanation": "Стрим проводит элементы через весь конвейер по одному («вертикально»), а не этап за этапом. `findFirst` — короткозамыкающая операция: как только `2` прошёл фильтр и `map`, результат найден, и `3`, `4` не трогаются вовсе.\nБез терминальной операции не выполнилось бы ничего. Исключение — stateful-операции вроде `sorted()`: им нужно увидеть все элементы, прежде чем выдать первый.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (laziness, short-circuiting)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-reuse-01",
+    "num": "3.2",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Stream<Integer> s = Stream.of(1, 2, 3);",
+        "System.out.println(s.count());",
+        "System.out.println(s.count());"
+      ]
+    },
+    "options": [
+      "3, затем IllegalStateException",
+      "3\n3",
+      "3\n0",
+      "IllegalStateException на первом count()"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "3",
+      "exception": "java.lang.IllegalStateException"
+    },
+    "explanation": "Стрим одноразовый: после терминальной операции повторное использование бросает `IllegalStateException: stream has already been operated upon or closed`. Хранить стрим в поле для повторного прохода — ошибка; храни источник или `Supplier<Stream<T>>`.\nЛюбопытно: с Java 9 `count()` может вообще не обходить элементы, если размер известен заранее, — но стрим всё равно считается использованным.",
+    "sources": [
+      {
+        "title": "Javadoc: Stream (count, повторное использование)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-tomap-duplicate-01",
+    "num": "3.3",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<Character, Integer> m = Stream.of(\"apple\", \"avocado\", \"banana\")",
+        "    .collect(Collectors.toMap(s -> s.charAt(0), String::length));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "IllegalStateException (Duplicate key a …)",
+      "{a=7, b=6}",
+      "{a=5, b=6}",
+      "{a=12, b=6}"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.IllegalStateException"
+    },
+    "explanation": "`Collectors.toMap(keyMapper, valueMapper)` без функции слияния при повторном ключе бросает `IllegalStateException` (сообщение вида `Duplicate key a (attempted merging values 5 and 7)`). Нужен третий аргумент: `(x, y) -> x` или `Integer::sum`.\nЕщё ловушка `toMap`: `null`-значение даёт NPE, хотя `HashMap` null допускает.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors.toMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-sorted-stateful-01",
+    "num": "3.4",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "tf",
+    "level": "senior",
+    "question": "`sorted()` — промежуточная операция, поэтому в общем случае, как и `map`, пропускает элементы дальше по одному, не дожидаясь конца стрима.",
+    "answer": false,
+    "explanation": "`sorted()` — stateful-операция: чтобы выдать первый элемент, ей нужно получить все. Поэтому `peek` до `sorted` отработает для всех элементов раньше, чем что-либо пройдёт после него, а на бесконечном стриме `sorted()` не завершится.\nИсключение — источник, уже отсортированный в натуральном порядке (`TreeSet`, флаг `SORTED`): тогда `sorted()` без компаратора — no-op.\n`distinct()` тоже stateful (помнит увиденное), но в последовательном стриме выдаёт элементы сразу.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (stateless vs stateful)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-parallel-recall-01",
+    "num": "3.5",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "recall",
+    "level": "senior",
+    "question": "Когда `parallelStream()` вредит, а не помогает?",
+    "answer_text": "- Все параллельные стримы по умолчанию делят один `ForkJoinPool.commonPool()` (параллелизм ≈ числу ядер − 1). Блокирующий IO в нём тормозит параллельные операции всего приложения, включая `CompletableFuture` без своего executor'а.\n- Мало данных или дешёвая операция на элемент — накладные расходы на разбиение и слияние больше выигрыша.\n- Плохо делимые источники: `LinkedList`, `Stream.iterate`, IO. Хорошо делятся `ArrayList`, массивы, `IntStream.range`.\n- Порядок дорог: `findFirst`, `limit`, `forEachOrdered` на упорядоченном стриме; иногда помогают `unordered()` и `findAny`.\n- Побочные эффекты и общий изменяемый state в лямбдах (`list.add` в `forEach`) — гонки. Функции должны быть stateless и non-interfering, собирать — через `collect`.\n- `reduce` требует ассоциативной функции и настоящего identity, иначе результат зависит от разбиения.",
+    "explanation": "Ключевое: общий `ForkJoinPool.commonPool()`, стоимость разбиения, плохие источники, порядок и побочные эффекты.",
+    "sources": [
+      {
+        "title": "Javadoc: package java.util.stream (Parallelism, Non-interference)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      },
+      {
+        "title": "Javadoc: ForkJoinPool.commonPool",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ForkJoinPool.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-groupingby-01",
+    "num": "3.6",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> words = List.of(\"apple\", \"avocado\", \"banana\", \"blueberry\", \"cherry\");",
+        "Map<Character, Long> m = words.stream()",
+        "    .collect(Collectors.groupingBy(w -> w.charAt(0), TreeMap::new, Collectors.counting()));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "{a=2, b=2, c=1}",
+      "IllegalStateException (Duplicate key a …)",
+      "{a=[apple, avocado], b=[banana, blueberry], c=[cherry]}",
+      "{a=1, b=1, c=1}"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{a=2, b=2, c=1}"
+    },
+    "explanation": "`groupingBy` собирает элементы с одинаковым ключом в группу, а downstream-коллектор (`counting`) сворачивает группу в значение — `Long`, не `int`. `toMap` с теми же функциями упал бы на дубликате ключа.\nФабрика `TreeMap::new` нужна ради порядка: тип мапы по умолчанию не гарантирован (на практике `HashMap`, порядок не определён). Другие полезные downstream: `mapping(f, toSet())`, `summingInt`, `maxBy`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-streams-partitioningby-01",
+    "num": "3.7",
+    "block": "java-streams",
+    "topic": "Stream API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<Boolean, List<Integer>> m = Stream.of(1, 3, 5)",
+        "    .collect(Collectors.partitioningBy(x -> x % 2 == 0));",
+        "System.out.println(m);"
+      ]
+    },
+    "options": [
+      "{false=[1, 3, 5], true=[]}",
+      "{false=[1, 3, 5]}",
+      "{false=[1, 3, 5], true=null}",
+      "{true=[1, 3, 5]}"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{false=[1, 3, 5], true=[]}"
+    },
+    "explanation": "`partitioningBy` всегда возвращает мапу с обоими ключами, `false` и `true`, даже если одна из групп пуста. `groupingBy(x -> x % 2 == 0)` дал бы `{false=[1, 3, 5]}` — без ключа `true`, и `m.get(true)` вернул бы `null`.\nПоэтому для деления на два по предикату берут `partitioningBy`: не нужно проверять `null`. Порядок вывода `false`, затем `true` — особенность реализации, а не контракт.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-orelse-eager-01",
+    "num": "3.8",
+    "block": "java-streams",
+    "topic": "Optional",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static String fallback() {",
+        "        System.out.print(\"fallback \");",
+        "        return \"b\";",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        String r1 = Optional.of(\"a\").orElse(fallback());",
+        "        String r2 = Optional.of(\"a\").orElseGet(() -> fallback());",
+        "        System.out.println(r1 + r2);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "fallback aa",
+      "aa",
+      "fallback fallback aa",
+      "fallback ab"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "fallback aa"
+    },
+    "explanation": "Аргумент `orElse` — обычное выражение: оно вычисляется до вызова метода, даже если значение есть. `orElseGet` принимает `Supplier` и вызывает его только для пустого `Optional`.\nРазница критична, когда запасное значение — запрос в БД, создание тяжёлого объекта или побочный эффект.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional.orElse / orElseGet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      },
+      {
+        "title": "JLS §15.12.4.2 Evaluate Arguments",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-map-null-01",
+    "num": "3.9",
+    "block": "java-streams",
+    "topic": "Optional",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Optional<String> o = Optional.of(\"x\").map(s -> null);",
+        "System.out.println(o.isPresent());"
+      ]
+    },
+    "options": [
+      "false",
+      "true",
+      "NullPointerException",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false"
+    },
+    "explanation": "`map` оборачивает результат функции как через `Optional.ofNullable`: если функция вернула `null`, получится `Optional.empty()`, а не NPE. Поэтому `map` безопасно стыкуется с API, возвращающими null.\n`flatMap`, наоборот, требует, чтобы функция вернула не-null `Optional`, иначе NPE.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional.map / flatMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-optional-value-based-01",
+    "num": "3.10",
+    "block": "java-streams",
+    "topic": "Optional",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Optional` — value-based класс. Что из этого следует?",
+    "options": [
+      "Нельзя полагаться на идентичность (`==`, `synchronized`, `identityHashCode`): равные экземпляры взаимозаменяемы",
+      "Каждый вызов `Optional.empty()` гарантированно возвращает новый объект",
+      "`Optional.of(x)` кеширует экземпляры, поэтому `Optional.of(1) == Optional.of(1)` гарантированно `true`",
+      "`Optional` нельзя хранить в коллекциях"
+    ],
+    "answer": 0,
+    "explanation": "Для value-based классов равные экземпляры считаются взаимозаменяемыми, и нельзя использовать операции, зависящие от идентичности: `==`, синхронизацию, `identityHashCode`. Сейчас `Optional.empty()` — синглтон, а `Optional.of` создаёт новые объекты, но это детали реализации, не гарантия.\nВ будущем (Project Valhalla) такие классы могут лишиться идентичности, и код с `synchronized` на них сломается. Сравнивать — через `equals`.",
+    "sources": [
+      {
+        "title": "Javadoc: Optional",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+      },
+      {
+        "title": "Javadoc: Value-based Classes",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/doc-files/ValueBased.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-lambdas-method-ref-null-01",
+    "num": "3.11",
+    "block": "java-streams",
+    "topic": "Лямбды и ссылки на методы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String s = null;",
+        "Supplier<Integer> lambda = () -> s.length();",
+        "System.out.println(\"lambda created\");",
+        "Supplier<Integer> ref = s::length;",
+        "System.out.println(\"ref created\");"
+      ]
+    },
+    "options": [
+      "lambda created, затем NullPointerException",
+      "lambda created\nref created",
+      "NullPointerException при создании лямбды",
+      "Не скомпилируется: s не effectively final"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "lambda created",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Лямбда `() -> s.length()` захватывает значение `s` и разыменует его только при вызове `get()` — создание проходит спокойно. У ссылки на метод вида `выражение::метод` получатель вычисляется и проверяется на `null` сразу при создании ссылки — NPE вылетает на этой строке, даже если `get()` никто не вызовет.\nПрактическое следствие: `optional.orElseGet(obj::compute)` при `obj == null` упадёт сразу, а с лямбдой NPE возможен только при вызове, то есть если `Optional` пуст.",
+    "sources": [
+      {
+        "title": "JLS §15.13.3 Run-Time Evaluation of Method References",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.13.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-lambdas-effectively-final-recall-01",
+    "num": "3.12",
+    "block": "java-streams",
+    "topic": "Лямбды и ссылки на методы",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему лямбда не может изменить захваченную локальную переменную, и чем плох обход через `int[] counter = {0}`?",
+    "answer_text": "Лямбда (и анонимный класс) захватывает **копию значения** локальной переменной: сама переменная живёт в кадре стека метода, а лямбда может пережить этот кадр и выполниться в другом потоке. Разрешить изменение значило бы создать иллюзию общей переменной — поэтому JLS требует, чтобы захваченные локальные переменные были final или effectively final.\n\nОбход `int[] counter = {0}` (или поле) компилируется: меняется элемент массива в куче, а не локальная переменная. Но так возвращается общее изменяемое состояние без синхронизации. В parallel-стриме, `CompletableFuture` или пуле потоков это гонка: `counter[0]++` теряет инкременты, и нет гарантий видимости.\n\nДаже в последовательном стриме побочные эффекты ненадёжны: с Java 9 `count()` может вообще не выполнить `peek`/`map`, если размер известен заранее.\n\nПравильно — считать без побочных эффектов (`count()`, `reduce`, `collect`), а если счётчик действительно общий между потоками — `AtomicInteger`/`LongAdder`.",
+    "explanation": "Ключевое: лямбда захватывает значение, а не переменную; обход через массив возвращает изменяемое общее состояние со всеми гонками.",
+    "sources": [
+      {
+        "title": "JLS §15.27.2 Lambda Body",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.2"
+      },
+      {
+        "title": "Javadoc: package java.util.stream (Side-effects)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]

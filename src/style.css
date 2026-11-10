@@ -41,6 +41,9 @@ button,.btn{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-colo
 .block .ico{font-size:26px;width:36px;text-align:center}
 .block .meta{flex:1;min-width:0}
 .block .title{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:40px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:14px}
+.chip.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
 .badge{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--bad-bg);color:var(--bad);font-weight:600;white-space:nowrap}
 .badge.zero{background:var(--code-bg);color:var(--muted)}
 

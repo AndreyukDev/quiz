@@ -81,7 +81,7 @@
 10. по желанию: testing, security (OAuth2/JWT), sql, algorithms
 
 ### Статус и пробелы ядра (2026-11-09)
-- **java-core — готов**: 62 вопроса (50 + вторая порция из 12 по плану Б: groupingBy/partitioningBy, выбор Set, LRU на LinkedHashMap, PriorityQueue, ArrayList против LinkedList, сложность HashMap, компараторы с null, конструктор и переопределяемый метод, «ромб» default-методов, `obj::m` с null, effectively final). Лимит 30–50 для java-core сознательно превышен. Сниппеты прогнаны на JDK 21, агент-противник пройден. Перекос: 31 из 62 — «что напечатает»; если мешает — часть перевести в mcq.
+- **java-core — готов** (с 2026-11-10 разнесён по разделам 1–4, см. «Решение 2026-11-10» ниже): 62 вопроса (50 + вторая порция из 12 по плану Б: groupingBy/partitioningBy, выбор Set, LRU на LinkedHashMap, PriorityQueue, ArrayList против LinkedList, сложность HashMap, компараторы с null, конструктор и переопределяемый метод, «ромб» default-методов, `obj::m` с null, effectively final). Лимит 30–50 для java-core сознательно превышен. Сниппеты прогнаны на JDK 21, агент-противник пройден. Перекос: 31 из 62 — «что напечатает»; если мешает — часть перевести в mcq.
 - **Сейчас: хозяин обкатывает на телефоне** (шаг 3 порядка работы). Новые блоки — после его правок формата.
 - 50 вопросов ядро не закрывают. Решено делить ядро на блоки, а не раздувать java-core. Следующие (вставить в план перед concurrency):
   - **java-lang** (~40): кеш `Integer` (127/128), NPE автораспаковки в тернарнике, выбор перегрузки (widening → boxing → varargs), порядок инициализации и вызов переопределённого метода из конструктора, `byte b += 1` vs `b = b + 1`, `0.1+0.2`, `NaN`, `-0.0`; default-методы и «ромб», правила переопределения (ковариантный возврат, throws, видимость), скрытие static, inner-классы и захват `this`; enum (синглтон, `EnumMap`, тела констант); лямбды: effectively final, bound/unbound ссылки, `obj::m` вычисляет получатель сразу.
@@ -107,6 +107,37 @@
   - Вторая порция `java-core`: `toMap` против `groupingBy`, HashSet/TreeSet/LinkedHashSet, сложность операций HashMap.
   - Материалы собеса — внутренний документ интервьюера: брать темы и формат, дословно не копировать.
 
+### Решение 2026-11-10: сначала вся Java, разбитая на разделы, потом Spring
+Заменяет пункты 1 и 3 плана Б. Хозяин хочет выучить Java «железно» и только потом переходить к Spring. Охват — максимальный, викторинные вопросы (`byte b += 1`, `-0.0`, перегрузка с varargs, bridge-методы и т. п.) тоже берём. Критерий «предотвращает баг в проде» перестаёт быть фильтром, но остаётся приоритетом: такие вопросы делать первыми.
+
+Разделы (номер = `order` в `blocks.json` = первая цифра `num`):
+| № | id | Что внутри | ≈ вопросов |
+|---|---|---|---|
+| 1 | `java-core` | язык: ООП и наследование, инициализация, автораспаковка, числа, enum, inner-классы, equals/hashCode/compareTo, generics, исключения, объекты и неизменяемость | 70 |
+| 2 | `java-collections` | HashMap/CHM изнутри, CME, неизменяемые коллекции, выбор коллекции, Tree/Navigable, очереди, `subList` и т. п. | 40 |
+| 3 | `java-streams` | Stream API, коллекторы, лямбды и ссылки на методы, функциональные интерфейсы, Optional | 35 |
+| 4 | `java-modern` | records, sealed, pattern matching, новое 17→25 по JEP | 25 |
+| 5 | `java-stdlib` | строки и Unicode, regex, java.time, I/O и NIO, кодировки | 25 |
+| 6 | `concurrency` | **JMM** (happens-before, volatile, final-поля, безопасная публикация, DCL), synchronized/Lock, CAS и atomics, executors, CompletableFuture, virtual threads, CHM на практике, deadlock | 50 |
+| 7 | `jvm-gc` | память, GC, JIT, флаги, JFR, утечки и OOM | 40 |
+Дальше — spring (8), persistence (9), code-review и остальные.
+
+Перенос существующих 62 вопросов из `java-core`: темы «HashMap и CHM», «ConcurrentModification», «Неизменяемые коллекции», «Выбор коллекции» → 2; «Stream API», «Optional», «Лямбды» → 3; «Records», «Sealed», «Pattern matching» → 4; остальное остаётся в 1. Строковый `id` не меняется (прогресс сохраняется), меняются `block` и `num` (номера введены 2026-11-10, ещё не устоялись). **Сделано 2026-11-10**: 1 — 21 вопрос, 2 — 17, 3 — 12, 4 — 12; внутри раздела вопросы сгруппированы по темам и пронумерованы заново. Разделы 5–7 появятся в `blocks.json` вместе с первыми вопросами. У перенесённых вопросов `id` начинается с `java-core-`, хотя блок другой: так и оставить, `id` не переименовывается. Новые вопросы получают префикс своего блока.
+
+Что добавить по темам (примерное число вопросов):
+- **Викторина (по желанию хозяина, ~10):** `byte b += 1` против `b = b + 1`, `-0.0` и `NaN`, выбор перегрузки (widening → boxing → varargs), `char + int`, деление целых и `%` с отрицательными, `switch` с fallthrough, `final` и `static final` константы во время компиляции.
+- **Язык (~25):** автораспаковка (NPE в тернарнике, NPE при `int x = map.get(k)`, `Integer ==` и кеш до 127); числа (`0.1+0.2`, деньги не в `double`, `BigDecimal`: `new BigDecimal(0.1)`, `equals` против `compareTo`, округление; переполнение и `Math.addExact`; `NaN` одним вопросом); порядок инициализации (static- и instance-блоки, родитель, циклические static); правила переопределения (ковариантный возврат, `throws`, видимость) и скрытие static; inner-классы держат внешний `this` (утечки), анонимный класс против лямбды; enum (синглтон, `EnumMap`/`EnumSet`, тела констант, `ordinal()` в БД, `valueOf` с неизвестной строкой); bound и unbound ссылки на методы.
+- **Коллекции глубже (~20):** `TreeMap`/`NavigableMap` (floor/ceiling, виды `subMap`), `ArrayDeque` против `Stack`/`LinkedList`, `WeakHashMap`/`IdentityHashMap`, `Set.of`/`Map.of` (случайный порядок, null, дубликаты → IAE), `unmodifiable` против `copyOf`, `SequencedCollection` (21), `subList` и его ловушки, `Iterator.remove`, `Arrays.sort` (стабильность), `binarySearch`, `hash()` и resize у HashMap.
+- **Stream API глубже (~20):** `flatMap`/`mapMulti`, `reduce` (identity, combiner), `toMap` с merge и фабрикой, `groupingBy` + downstream (`counting`, `mapping`, `collectingAndThen`), `teeing`, `Stream.toList()` против `Collectors.toList()`, `peek` и побочные эффекты, примитивные стримы и boxing, бесконечные `iterate`/`generate`, `takeWhile`/`dropWhile`, `findFirst` против `findAny`, parallel и common pool, Gatherers (финал в 24, отметить для 25).
+- **Generics глубже (~12):** захват wildcard и capture helper, `<T extends Comparable<? super T>>`, вывод типов, raw types, bridge-методы, `@SafeVarargs`, reifiable-типы, type token.
+- **Строки и текст (~10):** `StringBuilder` и конкатенация в цикле, суррогатные пары (`length()` против `codePoints()`), text blocks, `toUpperCase` и локаль (турецкая i), кодировка по умолчанию UTF-8 (JEP 400), regex (катастрофический backtracking, стоимость `Pattern.compile`).
+- **java.time (~8):** `Instant`/`LocalDateTime`/`ZonedDateTime`/`OffsetDateTime`, переход на летнее время, `Clock` для тестов, `Duration` против `Period`, `DateTimeFormatter` против `SimpleDateFormat` (потокобезопасность).
+- **Исключения и ресурсы (~6):** порядок закрытия в try-with-resources, checked-исключения в лямбдах, `Files.lines` без закрытия, `Cleaner` вместо `finalize`.
+- **Объекты и неизменяемость (~6):** защитные копии, `clone` и почему его избегают, сериализация (`serialVersionUID`, почему опасна).
+- **Новое 17→25 (~12):** record patterns, `_` (22), flexible constructor bodies (25), module import (25), compact source files / instance `main` (25), string templates (preview, удалены), scoped values, primitive patterns (preview).
+
+Список тем для concurrency и jvm-gc — в «Блоки (план)» выше и в уточнении по реальному собесу.
+
 ## Порядок работы
 1. Каркас: `index.html` (UI, Лейтнер, `localStorage`, экспорт/импорт, статистика, подсветка), PWA, схема и валидатор, скрипт сборки. 3–4 тестовых вопроса всех типов.
 2. Блок `java-core`: темы → вопросы → прогон сниппетов → проверка агентом-противником → правки.
@@ -118,6 +149,8 @@
 - `python3 scripts/build.py [--check]` — валидация `data/*.json` по схеме и сборка `dist/`.
 - `python3 scripts/run_snippets.py [блок] [--id ID]` — прогон java-сниппетов с полем `expect` (`stdout` / `exception` / `compile_error`) на установленном JDK. Сниппет без `static void main` — тело `main` со стандартными импортами.
 - `python3 scripts/check_links.py [блок]` — ссылки из `sources` и якоря на страницах.
+- Случайный режим (главный экран): чипами отмечаются разделы (`settings.pick` в `localStorage`, по умолчанию все). Сессия берёт случайные карточки из отмеченных разделов без учёта расписания, ответы всё равно двигают коробки Лейтнера.
+- `num` — номер для человека, `«order блока».«номер»` (например, `1.25` — java-core, 25-й вопрос). Показывается на карточке и в итогах сессии. Валидатор проверяет формат, уникальность и префикс по `order` из `blocks.json`. Номер не переиспользуется: новый вопрос получает следующий номер, у удалённого номер пропадает. Прогресс по-прежнему хранится по `id`.
 - Схема сверх описанной выше: `tf` → `answer: true|false`; `output` → обязательный `expect`; `code.text` — строка или массив строк; `level` — `middle`/`senior`.
 - Деплой: `.github/workflows/pages.yml` собирает и публикует `dist/` (в настройках Pages выбрать Source: GitHub Actions).
 

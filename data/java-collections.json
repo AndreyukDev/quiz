@@ -1,0 +1,642 @@
+[
+  {
+    "id": "java-core-hashmap-treeify-01",
+    "num": "2.1",
+    "block": "java-collections",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Когда бакет `HashMap` превращается из связного списка в красно-чёрное дерево?",
+    "options": [
+      "Когда цепочка превышает `TREEIFY_THRESHOLD` (8) и ёмкость таблицы ≥ `MIN_TREEIFY_CAPACITY` (64); при меньшей ёмкости таблица вместо этого расширяется",
+      "Как только в бакете оказывается больше 8 элементов, независимо от ёмкости таблицы",
+      "Когда `size` превышает `capacity * loadFactor`",
+      "Только если ключи реализуют `Comparable`; иначе цепочка растёт без ограничений"
+    ],
+    "answer": 0,
+    "explanation": "В `putVal` при длинной цепочке вызывается `treeifyBin`, но тот при `table.length < 64` делает `resize()` вместо дерева: в маленькой таблице длинная цепочка — скорее признак тесноты, чем плохих хешей.\nОбратно в список бакет превращается при resize, если в половине осталось ≤ 6 узлов (`UNTREEIFY_THRESHOLD`), а также при удалении, когда дерево становится слишком маленьким.\n`Comparable` не обязателен: без него порядок в дереве задаёт `tieBreakOrder` (имя класса, `identityHashCode`), просто поиск может обходить оба поддерева. Порог по `loadFactor` — условие resize, а не treeify.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      },
+      {
+        "title": "JEP 180: Handle Frequent HashMap Collisions with Balanced Trees",
+        "url": "https://openjdk.org/jeps/180"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-mutable-key-01",
+    "num": "2.2",
+    "block": "java-collections",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> key = new ArrayList<>(List.of(1));",
+        "Map<List<Integer>, String> map = new HashMap<>();",
+        "map.put(key, \"v\");",
+        "key.add(2);",
+        "System.out.println(map.get(key) + \" \" + map.containsKey(List.of(1)) + \" \" + map.size());"
+      ]
+    },
+    "options": [
+      "null false 1",
+      "v false 1",
+      "null true 1",
+      "v true 1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "null false 1"
+    },
+    "explanation": "Узел хранит хеш, вычисленный при `put`. После `key.add(2)` `key.hashCode()` другой, и `get(key)` ищет не там. Даже в том же бакете узел отсеялся бы сравнением сохранённого хеша.\n`List.of(1)` даёт старый хеш, но `equals` с изменённым `[1, 2]` уже ложен. Запись осталась в мапе «потерянной»: `size()` = 1.\nМораль: поля ключа, участвующие в `equals`/`hashCode`, не должны меняться, пока ключ лежит в мапе.",
+    "sources": [
+      {
+        "title": "Javadoc: Map (про изменяемые ключи)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-power-of-two-01",
+    "num": "2.3",
+    "block": "java-collections",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему ёмкость `HashMap` всегда степень двойки и зачем `hash()` делает `h ^ (h >>> 16)`?",
+    "answer_text": "Индекс бакета — `(n - 1) & hash`: это дешевле `%` и корректно только при `n` = 2^k. Но тогда индекс зависит лишь от младших битов хеша, и ключи, хеши которых различаются только старшими битами, сыпались бы в один бакет. Поэтому `hash()` подмешивает старшие 16 бит в младшие.\n\nБонус при resize: ёмкость удваивается, и каждый узел либо остаётся на индексе `i`, либо переезжает на `i + oldCap` — решает один бит `hash & oldCap`. Хеши не пересчитываются, цепочка делится на две с сохранением порядка.",
+    "explanation": "Ключевое: `&` вместо `%` → важны только младшие биты → их надо «перемешать» со старшими. И дешёвый resize.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-chm-null-01",
+    "num": "2.4",
+    "block": "java-collections",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "tf",
+    "level": "senior",
+    "question": "`ConcurrentHashMap`, как и `HashMap`, допускает один `null`-ключ и `null`-значения.",
+    "answer": false,
+    "explanation": "`ConcurrentHashMap` запрещает `null` и в ключах, и в значениях — будет NPE (как и в `Hashtable`).\nПричина, которую называет Дуг Ли (автор класса), — двусмысленность: в `HashMap` ответ `get(k) == null` можно уточнить через `containsKey`, а в конкурентной мапе между двумя вызовами состояние может измениться. Без null ответ `null` из `get` однозначно значит «ключа нет».",
+    "sources": [
+      {
+        "title": "Javadoc: ConcurrentHashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html"
+      },
+      {
+        "title": "Doug Lea, lambda-libs-spec-experts (2012): гонка containsKey/get при null",
+        "url": "https://mail.openjdk.org/pipermail/lambda-libs-spec-experts/2012-December/000669.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-hashmap-complexity-01",
+    "num": "2.5",
+    "block": "java-collections",
+    "topic": "HashMap и ConcurrentHashMap",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какова сложность `get` в `HashMap` (Java 8+)?",
+    "options": [
+      "O(1) в среднем; при коллизиях в бакете — O(log n) (дерево), для не-`Comparable` ключей с равными хешами — до O(n)",
+      "Всегда O(1): хеш-таблица гарантирует константу при любых ключах, коллизии лишь увеличивают константу",
+      "O(log n) всегда: с Java 8 все бакеты `HashMap` хранятся как красно-чёрные деревья",
+      "O(1) амортизированно даже в худшем случае: `resize` перераспределяет коллизии по новым бакетам"
+    ],
+    "answer": 0,
+    "explanation": "Javadoc обещает константное время для `get`/`put` при условии, что хеш-функция хорошо распределяет ключи. При массовых коллизиях (плохой `hashCode` или подобранные ключи) длинный бакет превращается в красно-чёрное дерево — O(log n) вместо O(n) у списка (JEP 180). Дерево строится, только если ёмкость таблицы ≥ 64, иначе вместо этого будет resize.\nn здесь — число узлов в бакете, а не размер мапы. Почему без `Comparable` поиск по дереву деградирует — см. вопрос про treeify: приходится обходить оба поддерева.",
+    "sources": [
+      {
+        "title": "Javadoc: HashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      },
+      {
+        "title": "JEP 180: Handle Frequent HashMap Collisions with Balanced Trees",
+        "url": "https://openjdk.org/jeps/180"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-penultimate-01",
+    "num": "2.6",
+    "block": "java-collections",
+    "topic": "ConcurrentModification",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"a\", \"b\", \"c\"));",
+        "for (String s : list) {",
+        "    if (s.equals(\"b\")) list.remove(s);",
+        "}",
+        "System.out.println(list);"
+      ]
+    },
+    "options": [
+      "[a, c]",
+      "ConcurrentModificationException",
+      "[a, b, c]",
+      "[a]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[a, c]"
+    },
+    "explanation": "for-each развёрнут в `Iterator`. После удаления `\"b\"` (предпоследний элемент) размер стал 2, и курсор итератора тоже 2. `hasNext()` (`cursor != size`) возвращает `false`, и цикл завершается до `next()`, где проверяется `modCount`.\nУдали `\"a\"` — получишь `ConcurrentModificationException`. Fail-fast — это best-effort диагностика, а не гарантия. Правильно: `list.removeIf(...)` или `iterator.remove()`.",
+    "sources": [
+      {
+        "title": "Javadoc: ArrayList (fail-fast итераторы)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html"
+      },
+      {
+        "title": "Javadoc: ConcurrentModificationException",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html"
+      },
+      {
+        "title": "OpenJDK 21: ArrayList.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/ArrayList.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-cow-snapshot-01",
+    "num": "2.7",
+    "block": "java-collections",
+    "topic": "ConcurrentModification",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new CopyOnWriteArrayList<>(List.of(1, 2, 3));",
+        "for (Integer i : list) {",
+        "    if (i == 1) list.add(4);",
+        "    System.out.print(i + \" \");",
+        "}",
+        "System.out.println(list.size());"
+      ]
+    },
+    "options": [
+      "1 2 3 4",
+      "1 2 3 4 4",
+      "ConcurrentModificationException",
+      "1 2 3 3"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1 2 3 4"
+    },
+    "explanation": "Итератор `CopyOnWriteArrayList` работает по снимку массива на момент своего создания: изменения во время обхода он не видит и CME не бросает. Цикл печатает `1 2 3`, затем размер — 4.\nКаждая запись копирует массив целиком, поэтому COW хорош для редко меняющихся и часто читаемых списков (например, слушателей) и плох при частых записях. Изменяющие операции самого итератора (`remove`, `set`, `add`) не поддерживаются — `UnsupportedOperationException`.",
+    "sources": [
+      {
+        "title": "Javadoc: CopyOnWriteArrayList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CopyOnWriteArrayList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-cme-structural-01",
+    "num": "2.8",
+    "block": "java-collections",
+    "topic": "ConcurrentModification",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Идёт обход `for (var e : map.entrySet())` по `HashMap`. Какая операция в теле цикла **не** является структурной модификацией и не ломает итератор?",
+    "options": [
+      "`map.put(k, v)`, где ключ `k` уже есть в мапе",
+      "`map.put(k, v)` с новым ключом",
+      "`map.remove(k)` для другого существующего ключа",
+      "`map.computeIfAbsent(k, f)` для отсутствующего ключа, `f` возвращает не `null`"
+    ],
+    "answer": 0,
+    "explanation": "Структурная модификация — это добавление или удаление отображений. Замена значения у существующего ключа ею не является и `modCount` не меняет. Поэтому `put` по существующему ключу (как и `entry.setValue`) безопасен.\nДобавление или удаление других ключей, как правило, приведёт к CME на следующем `next()` (fail-fast — best-effort). Для удаления текущего элемента — `iterator.remove()`, для массовых правок — `entrySet().removeIf` или `replaceAll`.",
+    "sources": [
+      {
+        "title": "Javadoc: HashMap (structural modification)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-listof-contains-null-01",
+    "num": "2.9",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> a = Arrays.asList(\"x\", \"y\");",
+        "List<String> b = List.of(\"x\", \"y\");",
+        "System.out.println(a.contains(null));",
+        "System.out.println(b.contains(null));"
+      ]
+    },
+    "options": [
+      "false, затем NullPointerException",
+      "false\nfalse",
+      "NullPointerException на первом println",
+      "false, затем UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Неизменяемые коллекции из `List.of`/`Set.of`/`Map.of` не просто запрещают null-элементы: у них и `contains(null)` бросает NPE. Javadoc `Collection.contains` это разрешает — NPE там помечен как «optional».\n`Arrays.asList` — обёртка над массивом, null допускает и честно отвечает `false`. Ловушка при механической замене `Arrays.asList` на `List.of` в коде, где проверяют `contains(x)` с возможным `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "Javadoc: Collection.contains",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-view-vs-copy-01",
+    "num": "2.10",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> src = new ArrayList<>(List.of(1, 2));",
+        "List<Integer> view = Collections.unmodifiableList(src);",
+        "List<Integer> copy = List.copyOf(src);",
+        "src.add(3);",
+        "System.out.println(view.size() + \" \" + copy.size());"
+      ]
+    },
+    "options": [
+      "3 2",
+      "3 3",
+      "2 2",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "3 2"
+    },
+    "explanation": "`Collections.unmodifiableList` — только вид (view): изменения через него запрещены, но изменения исходного списка он отражает. `List.copyOf` делает настоящий неизменяемый снимок.\nЕсли отдаёшь наружу внутреннее состояние объекта, нужен `copyOf` (или копия + unmodifiable). Иначе «неизменяемая» коллекция поменяется под ногами у клиента.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.unmodifiableList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "Javadoc: List.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-arrays-aslist-01",
+    "num": "2.11",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer[] arr = {1, 2, 3};",
+        "List<Integer> list = Arrays.asList(arr);",
+        "list.set(0, 10);",
+        "System.out.println(arr[0]);",
+        "list.add(4);"
+      ]
+    },
+    "options": [
+      "10, затем UnsupportedOperationException",
+      "1, затем UnsupportedOperationException",
+      "UnsupportedOperationException на set",
+      "10, список становится [10, 2, 3, 4]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "10",
+      "exception": "java.lang.UnsupportedOperationException"
+    },
+    "explanation": "`Arrays.asList` возвращает список фиксированного размера поверх переданного массива. `set` разрешён и пишет прямо в массив (поэтому `arr[0]` стал 10), а `add`/`remove` бросают `UnsupportedOperationException` (реализация по умолчанию из `AbstractList`).\nЭто не `List.of` (там запрещён и `set`) и не `ArrayList`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.asList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "Javadoc: AbstractList.add",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/AbstractList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-reversed-view-01",
+    "num": "2.12",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код (Java 21)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new ArrayList<>(List.of(1, 2, 3));",
+        "List<Integer> rev = list.reversed();",
+        "rev.add(0);",
+        "list.add(4);",
+        "System.out.println(list + \" \" + rev);"
+      ]
+    },
+    "options": [
+      "[0, 1, 2, 3, 4] [4, 3, 2, 1, 0]",
+      "[1, 2, 3, 0, 4] [4, 0, 3, 2, 1]",
+      "[1, 2, 3, 4] [0, 3, 2, 1]",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[0, 1, 2, 3, 4] [4, 3, 2, 1, 0]"
+    },
+    "explanation": "`reversed()` из Sequenced Collections (Java 21, JEP 431) возвращает не копию, а вид в обратном порядке: изменения проходят в обе стороны.\n`add` в конец обратного вида — это вставка в начало исходного списка. Новые элементы исходного списка сразу видны в `rev`. Если исходная коллекция неизменяема, вид тоже не позволит её менять.",
+    "sources": [
+      {
+        "title": "JEP 431: Sequenced Collections",
+        "url": "https://openjdk.org/jeps/431"
+      },
+      {
+        "title": "Javadoc: SequencedCollection.reversed",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/SequencedCollection.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-compare-recall-01",
+    "num": "2.13",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "recall",
+    "level": "senior",
+    "question": "Сравни `List.of(...)`, `Arrays.asList(...)`, `Collections.unmodifiableList(...)`, `stream.toList()` и `collect(Collectors.toList())`: изменяемость, `null`, связь с источником.",
+    "answer_text": "- `List.of` / `List.copyOf` — полностью неизменяемы, `null` запрещён (даже `contains(null)` → NPE), от источника не зависят; value-based — на `==` не полагаться.\n- `Arrays.asList` — фиксированный размер поверх массива: `set` можно (пишет в массив), `add`/`remove` → UOE, `null` можно.\n- `Collections.unmodifiableList` — вид только для чтения; изменения исходного списка видны.\n- `stream.toList()` (16+) — неизменяемый, но `null`-элементы допускает.\n- `Collectors.toList()` — тип, изменяемость и потокобезопасность не гарантированы (на практике `ArrayList`).",
+    "explanation": "Чаще всего путают «вид» и «копию» и забывают, что `List.of` враждебен к `null` даже в `contains`.",
+    "sources": [
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "Javadoc: Stream.toList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+      },
+      {
+        "title": "Javadoc: Collectors.toList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-sets-order-01",
+    "num": "2.14",
+    "block": "java-collections",
+    "topic": "Выбор коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> src = List.of(\"pear\", \"Apple\", \"fig\", \"apple\");",
+        "Set<String> linked = new LinkedHashSet<>(src);",
+        "Set<String> tree = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);",
+        "tree.addAll(src);",
+        "System.out.println(linked + \" \" + tree);"
+      ]
+    },
+    "options": [
+      "[pear, Apple, fig, apple] [Apple, fig, pear]",
+      "[pear, Apple, fig, apple] [Apple, apple, fig, pear]",
+      "[Apple, apple, fig, pear] [Apple, fig, pear]",
+      "[pear, Apple, fig, apple] [apple, fig, pear]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[pear, Apple, fig, apple] [Apple, fig, pear]"
+    },
+    "explanation": "`LinkedHashSet` хранит порядок вставки, дубликаты определяет через `hashCode` + `equals`: `\"Apple\"` и `\"apple\"` разные — оба остаются. `HashSet` порядка не гарантирует вовсе.\n`TreeSet` сортирует и считает дубликатом всё, где компаратор вернул 0 (как в примере с `BigDecimal`). С `CASE_INSENSITIVE_ORDER` `\"apple\"` равен `\"Apple\"`, и второй не добавляется — остаётся первый вставленный, `Apple`, а не последний. Сложность: `HashSet`/`LinkedHashSet` — O(1) в среднем, `TreeSet` — O(log n).",
+    "sources": [
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: LinkedHashSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashSet.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-lru-01",
+    "num": "2.15",
+    "block": "java-collections",
+    "topic": "Выбор коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Lru<K, V> extends LinkedHashMap<K, V> {",
+        "    private final int max;",
+        "    Lru(int max) { super(16, 0.75f, true); this.max = max; }",
+        "    @Override",
+        "    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) { return size() > max; }",
+        "}",
+        "Map<String, Integer> cache = new Lru<>(2);",
+        "cache.put(\"a\", 1);",
+        "cache.put(\"b\", 2);",
+        "cache.get(\"a\");",
+        "cache.put(\"c\", 3);",
+        "System.out.println(cache.keySet());"
+      ]
+    },
+    "options": [
+      "[a, c]",
+      "[b, c]",
+      "[a, b, c]",
+      "[c, a]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[a, c]"
+    },
+    "explanation": "Третий аргумент конструктора `LinkedHashMap(16, 0.75f, true)` включает порядок доступа: `get(\"a\")` переносит `a` в конец. После `put(\"c\")` вызывается `removeEldestEntry`, и самый давно не использованный `b` удаляется.\nЭто готовый LRU-кэш в пару строк, но не потокобезопасный. Ловушка: в режиме access-order даже `get` — структурная модификация, обход с `get` внутри даст CME. Для прода — Caffeine или синхронизация.",
+    "sources": [
+      {
+        "title": "Javadoc: LinkedHashMap (access-order, removeEldestEntry)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-pq-iteration-01",
+    "num": "2.16",
+    "block": "java-collections",
+    "topic": "Выбор коллекции",
+    "type": "tf",
+    "level": "senior",
+    "question": "Обход `PriorityQueue` через for-each (и её `toString()`) гарантированно выдаёт элементы в порядке приоритета.",
+    "answer": false,
+    "explanation": "Внутри `PriorityQueue` — двоичная куча в массиве. Гарантирован только минимум в корне (каждый родитель ≤ своих детей), массив целиком не отсортирован: `peek()`/`poll()` дают минимальный элемент, а итератор идёт по массиву в порядке кучи. Например, `new PriorityQueue<>(List.of(5, 1, 4, 2, 3))` печатается как `[1, 2, 4, 5, 3]`.\nJavadoc прямо говорит: порядок обхода не гарантирован; для упорядоченного обхода — `Arrays.sort(pq.toArray())` или вынимать `poll()` в цикле. Отладочный лог очереди вводит в заблуждение.",
+    "sources": [
+      {
+        "title": "Javadoc: PriorityQueue",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/PriorityQueue.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-colls-arraylist-linkedlist-recall-01",
+    "num": "2.17",
+    "block": "java-collections",
+    "topic": "Выбор коллекции",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему `LinkedList` на практике почти никогда не выигрывает у `ArrayList`, хотя вставка в середину у него O(1)?",
+    "answer_text": "- O(1) вставка у `LinkedList` — только когда узел уже найден (через `ListIterator`). Найти позицию по индексу — O(n) обход узлов.\n- Каждый элемент — отдельный объект `Node` (заголовок + три ссылки `item`/`next`/`prev`, порядка 24–32 байт) против одной ссылки (4–8 байт) в массиве `ArrayList`: в разы больше памяти и работы для GC.\n- Узлы разбросаны по куче — промахи кэша процессора. `ArrayList` сдвигает элементы одним `System.arraycopy` по непрерывной памяти, и на практике это быстро до весьма больших размеров.\n- Честный плюс `LinkedList` — операции на концах: удаление из головы у `ArrayList` O(n), у `LinkedList` O(1). Но для очереди или стека есть `ArrayDeque` — тоже O(1) на концах и компактнее (зато не принимает `null`); javadoc прямо говорит, что как очередь он, скорее всего, быстрее `LinkedList`.\n- Остаётся узкий случай: много вставок и удалений через итератор посреди большого списка — и то стоит мерить.",
+    "explanation": "Ключевое: O(1) только при уже найденном узле, а поиск — O(n) по разрозненной памяти; для очереди есть `ArrayDeque`.",
+    "sources": [
+      {
+        "title": "Javadoc: LinkedList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedList.html"
+      },
+      {
+        "title": "Javadoc: ArrayDeque",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayDeque.html"
+      },
+      {
+        "title": "Javadoc: ArrayList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]
