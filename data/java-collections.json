@@ -495,6 +495,621 @@
     }
   },
   {
+    "id": "java-collections-copy-shallow-01",
+    "num": "2.18",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "ArrayList<StringBuilder> src = new ArrayList<>(List.of(new StringBuilder(\"a\")));",
+        "@SuppressWarnings(\"unchecked\")",
+        "ArrayList<StringBuilder> copy = (ArrayList<StringBuilder>) src.clone();",
+        "copy.get(0).append(\"b\");",
+        "copy.add(new StringBuilder(\"z\"));",
+        "System.out.println(src + \" \" + copy);"
+      ]
+    },
+    "options": [
+      "[ab] [ab, z]",
+      "[a] [ab, z]",
+      "[ab, z] [ab, z]",
+      "[a] [a, z]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[ab] [ab, z]"
+    },
+    "explanation": "`ArrayList.clone()`, как и `new ArrayList<>(src)` или `List.copyOf(src)`, делает **поверхностную** копию: новый массив ссылок, но сами элементы общие. Поэтому `append` через копию виден в оригинале, а `add` в копию оригинал не меняет.\nКопия коллекции защищает только её структуру. Если элементы изменяемые, «защитная копия» их не защищает: нужны неизменяемые элементы или глубокое копирование.\n`clone()` к тому же возвращает `Object` и требует непроверяемого приведения. Конструктор копирования проще и работает с любой `Collection`.",
+    "sources": [
+      {
+        "title": "Javadoc: ArrayList.clone",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html#clone()"
+      },
+      {
+        "title": "Javadoc: Object.clone",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#clone()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-array-2d-clone-01",
+    "num": "2.19",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[][] m = {{1, 2}, {3, 4}};",
+        "int[][] c = m.clone();",
+        "c[0][0] = 9;",
+        "c[1] = new int[]{7};",
+        "System.out.println(m[0][0] + \" \" + m[1].length);"
+      ]
+    },
+    "options": [
+      "9 2",
+      "1 2",
+      "9 1",
+      "1 1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "9 2"
+    },
+    "explanation": "Двумерный массив в Java — это массив ссылок на массивы. `clone()` копирует только внешний массив: строки `m[0]` и `c[0]` — один и тот же объект, поэтому запись `c[0][0] = 9` видна в `m`.\nЗамена строки `c[1] = new int[]{7}` меняет ссылку только во внешнем массиве копии, и `m[1]` остаётся прежней длины 2.\n`Arrays.copyOf` и `System.arraycopy` тоже копируют поверхностно. Глубокая копия делается вручную: `Arrays.stream(m).map(int[]::clone).toArray(int[][]::new)`.",
+    "sources": [
+      {
+        "title": "JLS §10.7 Array Members (clone — shallow)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.7"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-aslist-primitive-01",
+    "num": "2.20",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[] a = {1, 2, 3};",
+        "System.out.println(Arrays.asList(a).size() + \" \" + List.of(a).size());"
+      ]
+    },
+    "options": [
+      "1 1",
+      "3 3",
+      "1 3",
+      "Не скомпилируется: `int[]` нельзя передать в `T...`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1 1"
+    },
+    "explanation": "`Arrays.asList(T... a)` — generic varargs, а `T` не может быть примитивом, поэтому `int[]` не разворачивается в элементы: `T = int[]`. `List.of(a)` вообще выбирает перегрузку `List.of(E e1)` с `E = int[]`. В обоих случаях получается `List<int[]>` размера 1.\nС `Integer[]` оба вернут список из трёх элементов. Для примитивов: `Arrays.stream(a).boxed().toList()` или `IntStream.of(a)...`.\nЛовушка опасна тем, что код компилируется: `Arrays.asList(a).contains(1)` молча вернёт `false`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.asList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#asList(T...)"
+      },
+      {
+        "title": "JLS §15.12.4.2 Evaluate Arguments (varargs)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-set-of-duplicates-01",
+    "num": "2.21",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(Set.copyOf(List.of(1, 1, 2)).size());",
+        "System.out.println(Set.of(1, 1, 2).size());"
+      ]
+    },
+    "options": [
+      "2, затем IllegalArgumentException",
+      "2\n2",
+      "IllegalArgumentException на первой строке",
+      "3, затем IllegalArgumentException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2",
+      "exception": "java.lang.IllegalArgumentException"
+    },
+    "explanation": "`Set.of` и `Map.of` / `Map.ofEntries` считают дубликат ошибкой программиста и бросают `IllegalArgumentException`: аргументы обычно литералы, и повтор — почти наверняка опечатка.\n`Set.copyOf` принимает произвольную коллекцию, где повторы законны, поэтому молча оставляет один из них. Аналогично `Collectors.toSet()`, а вот `Collectors.toMap` без merge-функции на повторном ключе бросит `IllegalStateException`.\nЛовушка в проде: `Set.of(a, b)` из переменных, которые иногда совпадают, падает только на части данных.",
+    "sources": [
+      {
+        "title": "Javadoc: Set (Unmodifiable Sets), Set.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Set.html"
+      },
+      {
+        "title": "Javadoc: Map.of",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-set-of-order-01",
+    "num": "2.22",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Тест проверяет `assertEquals(\"[a, b, c]\", Set.of(\"a\", \"b\", \"c\").toString())`. Как он себя поведёт на JDK 21?",
+    "options": [
+      "Будет то проходить, то падать: порядок обхода `Set.of` / `Map.of` меняется от запуска JVM к запуску",
+      "Всегда проходит: `Set.of` сохраняет порядок аргументов",
+      "Всегда проходит: порядок определяется `hashCode` строк и стабилен, как у `HashSet`",
+      "Всегда проходит: `Set.of` хранит элементы отсортированными"
+    ],
+    "answer": 0,
+    "explanation": "Javadoc: порядок обхода неизменяемых `Set` и `Map` не специфицирован и может меняться. В OpenJDK это сделано нарочно: `ImmutableCollections` смешивают хеш со случайной «солью», которая выбирается при старте JVM. В пределах одного запуска порядок стабилен, между запусками — нет.\nЦель — чтобы код и тесты не привязывались к порядку. Нужен порядок вставки — `LinkedHashSet` (с Java 21 он `SequencedSet`), сортировка — `TreeSet`. В тестах сравнивать множества, а не `toString()`.\nУ `HashSet` порядок тоже не специфицирован, хоть на практике и стабилен между запусками.",
+    "sources": [
+      {
+        "title": "Javadoc: Set (Unmodifiable Sets)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Set.html"
+      },
+      {
+        "title": "Javadoc: Map (Unmodifiable Maps)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-copyof-identity-01",
+    "num": "2.23",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код на JDK 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> of = List.of(1, 2);",
+        "List<Integer> view = Collections.unmodifiableList(new ArrayList<>(of));",
+        "System.out.println((List.copyOf(of) == of) + \" \"",
+        "        + (List.copyOf(view) == view) + \" \"",
+        "        + (Collections.unmodifiableList(view) == view));"
+      ]
+    },
+    "options": [
+      "true false true",
+      "false false false",
+      "true true true",
+      "true false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false true"
+    },
+    "explanation": "`List.copyOf` от уже неизменяемого `List.of` возвращает тот же объект: копировать нечего (javadoc: «generally not create a copy»). Поэтому `List.copyOf` в конструкторе для защитной копии почти бесплатен, если пришёл неизменяемый список.\n`unmodifiableList` — лишь вид поверх изменяемого списка, и `copyOf` обязан сделать настоящий снимок.\nСамо `unmodifiableList` с Java 17 не оборачивает повторно уже обёрнутое (javadoc: «may return its argument if already unmodifiable»). В коде на `==` полагаться нельзя: `List.of`/`copyOf` — value-based, а возврат того же объекта — деталь реализации (javadoc: «generally», «may»).",
+    "sources": [
+      {
+        "title": "Javadoc: List.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#copyOf(java.util.Collection)"
+      },
+      {
+        "title": "Javadoc: Collections.unmodifiableList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#unmodifiableList(java.util.List)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-sort-fixed-size-01",
+    "num": "2.24",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> a = Arrays.asList(3, 1, 2);",
+        "a.sort(null);",
+        "System.out.println(a);",
+        "List.of(1, 2, 3).sort(null);"
+      ]
+    },
+    "options": [
+      "[1, 2, 3], затем UnsupportedOperationException",
+      "[1, 2, 3], и больше ничего: второй список уже отсортирован",
+      "UnsupportedOperationException на `a.sort`",
+      "[3, 1, 2], затем UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[1, 2, 3]",
+      "exception": "java.lang.UnsupportedOperationException"
+    },
+    "explanation": "`Arrays.asList` — фиксированный размер, но не неизменяемость: `set`, `sort`, `replaceAll`, `Collections.shuffle` работают, потому что не меняют размер (и пишут прямо в исходный массив).\n`List.of` неизменяем полностью: любой мутирующий метод бросает UOE **всегда**, даже если список уже отсортирован или пуст (javadoc: «will always cause»).\nЕсли нужно отсортировать неизменяемый список — `new ArrayList<>(list)` или `list.stream().sorted().toList()`.",
+    "sources": [
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "Javadoc: Arrays.asList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#asList(T...)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-removeif-nomatch-01",
+    "num": "2.25",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт? Ни одно число не больше 5.",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> a = Arrays.asList(1, 2);",
+        "List<Integer> b = List.of(1, 2);",
+        "System.out.println(a.removeIf(x -> x > 5));",
+        "System.out.println(b.removeIf(x -> x > 5));"
+      ]
+    },
+    "options": [
+      "false, затем UnsupportedOperationException",
+      "false\nfalse",
+      "UnsupportedOperationException на первом `removeIf`",
+      "true, затем UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false",
+      "exception": "java.lang.UnsupportedOperationException"
+    },
+    "explanation": "`Arrays.asList` не переопределяет `removeIf`, работает default-реализация `Collection`: обход итератором и `iterator.remove()` только для совпавших. Совпадений нет — удалять нечего, исключения нет, `false`. С совпадением был бы UOE.\n`List.of` (и `Collections.unmodifiableList`) переопределяют `removeIf` и бросают UOE сразу, не глядя на данные.\nJavadoc `Collection.removeIf` разрешает оба поведения. Отсюда баг «в тестах работало»: UOE в проде появляется, только когда в данных находится что удалять.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.removeIf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html#removeIf(java.util.function.Predicate)"
+      },
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-tolist-nulls-01",
+    "num": "2.26",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(Stream.of(1, null).toList().size());",
+        "System.out.println(Stream.of(1, null).collect(Collectors.toUnmodifiableList()).size());"
+      ]
+    },
+    "options": [
+      "2, затем NullPointerException",
+      "NullPointerException на первой строке",
+      "2\n2",
+      "2, затем UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Оба результата неизменяемы, но `Stream.toList()` (Java 16) допускает `null`-элементы, а `Collectors.toUnmodifiableList()` (Java 10) устроен как `List.copyOf` и на `null` бросает NPE.\nПоэтому механическая замена `collect(Collectors.toList())` → `toList()` безопасна по `null`, но не по изменяемости: результат `Collectors.toList()` на практике `ArrayList`, и код, который потом делает `add`, получит UOE.\nПо той же причине `List.copyOf(stream.toList())` делает копию: такой список может содержать `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: Stream.toList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#toList()"
+      },
+      {
+        "title": "Javadoc: Collectors.toUnmodifiableList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#toUnmodifiableList()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-legacy-factories-01",
+    "num": "2.27",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какое утверждение о `Collections.emptyList` / `singletonList` / `nCopies` верно?",
+    "options": [
+      "`Collections.singletonList(null)` допустим, а `List.of((Object) null)` бросит NPE",
+      "`Collections.singletonList(x).set(0, y)` работает: размер не меняется, как у `Arrays.asList`",
+      "`Collections.nCopies(1_000_000, x)` выделяет массив на миллион ссылок",
+      "`Collections.emptyList()` при каждом вызове создаёт новый пустой список"
+    ],
+    "answer": 0,
+    "explanation": "Старые фабрики `Collections.*` допускают `null`, новые `List.of` / `Set.of` / `Map.of` — нет (NPE на создании и даже на `contains(null)`).\n`singletonList` и `nCopies` неизменяемы целиком: `set` → UOE (в отличие от `Arrays.asList`). `nCopies` хранит один элемент и число `n`, массив не выделяет — удобно как `new ArrayList<>(Collections.nCopies(n, 0))` для заполнения.\n`emptyList()` в OpenJDK возвращает один общий экземпляр `EMPTY_LIST`, приведённый к нужному типу (javadoc лишь разрешает не создавать новый объект на каждый вызов).",
+    "sources": [
+      {
+        "title": "Javadoc: Collections (emptyList, singletonList, nCopies)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "Javadoc: List (Unmodifiable Lists)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-list-equals-impl-01",
+    "num": "2.28",
+    "block": "java-collections",
+    "topic": "Неизменяемые коллекции и виды",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(List.of(1, 2).equals(Arrays.asList(1, 2)) + \" \"",
+        "        + List.of(1, 2).equals(new ArrayList<>(List.of(1, 2))) + \" \"",
+        "        + List.of(1).equals(Set.of(1)));"
+      ]
+    },
+    "options": [
+      "true true false",
+      "false false false",
+      "true true true",
+      "false true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true true false"
+    },
+    "explanation": "`List.equals` специфицирован контрактом интерфейса: равны любые `List` с теми же элементами в том же порядке, независимо от реализации. `hashCode` тоже задан формулой, так что разные реализации совместимы в `HashSet`/`HashMap`.\n`List` и `Set` между собой никогда не равны: у них разные контракты `equals`.\nА вот сравнивать `List.of(...)` через `==` нельзя: это value-based-объекты, идентичность не гарантирована.",
+    "sources": [
+      {
+        "title": "Javadoc: List.equals / List.hashCode",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#equals(java.lang.Object)"
+      },
+      {
+        "title": "Javadoc: Value-based Classes",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/doc-files/ValueBased.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-toarray-cast-01",
+    "num": "2.29",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"a\", \"b\"));",
+        "String[] arr = (String[]) list.toArray();",
+        "System.out.println(arr.length);"
+      ]
+    },
+    "options": [
+      "ClassCastException",
+      "Напечатает 2",
+      "Не скомпилируется: `Object[]` нельзя привести к `String[]`",
+      "ArrayStoreException"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "`toArray()` без аргументов возвращает массив с рантайм-типом `Object[]`: из-за стирания коллекция не знает `String`. Приведение компилируется (`Object[]` → `String[]` — сужение ссылочного типа), но в рантайме даёт CCE.\nНужный тип передают явно: `list.toArray(String[]::new)` (Java 11) или `list.toArray(new String[0])`.\nДо Java 9 `Arrays.asList(...).toArray()` возвращал `String[]`, и такой каст «работал»; это исправили (JDK-6260652), старый код мог сломаться.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.toArray",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html#toArray()"
+      },
+      {
+        "title": "JDK-6260652: Arrays.asList(x).toArray().getClass() should be Object[].class",
+        "url": "https://bugs.openjdk.org/browse/JDK-6260652"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-toarray-larger-01",
+    "num": "2.30",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"a\", \"b\"));",
+        "String[] target = {\"x\", \"y\", \"z\", \"w\"};",
+        "String[] r = list.toArray(target);",
+        "System.out.println((r == target) + \" \" + Arrays.toString(r));"
+      ]
+    },
+    "options": [
+      "true [a, b, null, w]",
+      "true [a, b, z, w]",
+      "false [a, b]",
+      "true [a, b, null, null]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true [a, b, null, w]"
+    },
+    "explanation": "`toArray(T[] a)`: если массив достаточно велик, элементы пишутся в него и он же возвращается. Сразу за последним элементом ставится **один** `null` (маркер конца, полезен, если в коллекции нет `null`), хвост дальше не трогается.\nЕсли массив мал, создаётся новый массив того же типа нужного размера, а переданный не меняется.\nОтсюда идиома `toArray(new String[0])` или `toArray(String[]::new)`: массив нужен только как образец типа.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.toArray(T[])",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html#toArray(T%5B%5D)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-toarray-presized-01",
+    "num": "2.31",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Как лучше превратить `Collection<String> c` в `String[]` и почему?",
+    "options": [
+      "`c.toArray(new String[0])` или `c.toArray(String[]::new)`: не медленнее, а для конкурентной коллекции не оставит лишних `null` в хвосте",
+      "`c.toArray(new String[c.size()])`: массив выделяется один раз, поэтому это заметно быстрее",
+      "`(String[]) c.toArray()`: без лишних аллокаций",
+      "`c.stream().toArray()`: стрим сам определит тип элементов"
+    ],
+    "answer": 0,
+    "explanation": "Пустой массив служит только образцом типа. На современных HotSpot вариант с `new T[0]` не медленнее «предразмеренного» и часто быстрее: JVM не тратит время на зануление массива, который всё равно перезапишется.\nДля конкурентной коллекции `size()` и `toArray` — разные моменты: если коллекция успела уменьшиться, в хвосте предразмеренного массива окажутся `null`.\n`(String[]) c.toArray()` → CCE, а `stream().toArray()` без генератора возвращает `Object[]`; правильно `stream().toArray(String[]::new)`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.toArray(IntFunction)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html#toArray(java.util.function.IntFunction)"
+      },
+      {
+        "title": "Aleksey Shipilёv: Arrays of Wisdom of the Ancients",
+        "url": "https://shipilev.net/blog/2016/arrays-wisdom-ancients/"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
+    "id": "java-collections-toarray-arraystore-01",
+    "num": "2.32",
+    "block": "java-collections",
+    "topic": "Копирование и toArray",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Object> list = new ArrayList<>(List.of(\"a\", 1));",
+        "String[] arr = list.toArray(new String[0]);",
+        "System.out.println(arr.length);"
+      ]
+    },
+    "options": [
+      "ArrayStoreException",
+      "ClassCastException",
+      "Не скомпилируется: `List<Object>` в `String[]`",
+      "Напечатает 2"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.ArrayStoreException"
+    },
+    "explanation": "Сигнатура `<T> T[] toArray(T[] a)`: `T` не связан с типом элементов коллекции, поэтому компилятор ничего не проверяет.\nВ рантайме создаётся `String[]`, и запись в него `Integer` ловит проверка ковариантных массивов — `ArrayStoreException` (javadoc `toArray(T[])` её прямо перечисляет).\nТа же проверка срабатывает в `Object[] o = new Integer[1]; o[0] = \"s\";`: массивы ковариантны и проверяют тип при записи, generics инвариантны и проверяют при компиляции.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.toArray(T[])",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html#toArray(T%5B%5D)"
+      },
+      {
+        "title": "JLS §10.5 Array Store Exception",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-11"
+    }
+  },
+  {
     "id": "java-core-colls-sets-order-01",
     "num": "2.14",
     "block": "java-collections",
