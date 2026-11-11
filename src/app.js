@@ -192,7 +192,7 @@ let session = null;
 function startSession(blockId, early = false, random = false) {
   const now = Date.now(), size = store.settings.size;
   if (random) {
-    session = {blockId, items: shuffle(blockQuestions(blockId).slice()).slice(0, size), i: 0, results: [], early, random};
+    session = {blockId, items: shuffle(blockQuestions(blockId).slice()).slice(0, size), i: 0, state: [], early, random};
     go('#/q');
     return;
   }
@@ -204,7 +204,7 @@ function startSession(blockId, early = false, random = false) {
   due.sort((a, b) => P(a).b - P(b).b || P(a).d - P(b).d);
   let items = due.concat(shuffle(fresh)).slice(0, size);
   if (!items.length && early) items = later.sort((a, b) => P(a).d - P(b).d).slice(0, size);
-  session = {blockId, items: shuffle(items), i: 0, results: [], early};
+  session = {blockId, items: shuffle(items), i: 0, state: [], early};
   go('#/q');
 }
 
@@ -253,12 +253,13 @@ function renderQuiz() {
   if (!s.items.length) return renderEmpty();
   if (s.i >= s.items.length) return renderDone();
   const q = s.items[s.i];
-  s.answered = false;
+  // состояние карточки живёт в сессии: при возврате назад — тот же порядок вариантов и тот же ответ
+  const st = s.state[s.i] || (s.state[s.i] = {});
   let opts = '';
   if (q.type === 'mcq' || q.type === 'output') {
-    s.order = shuffle(q.options.map((_, i) => i));
+    st.order = st.order || shuffle(q.options.map((_, i) => i));
     const cls = q.type === 'output' ? ' opt-code' : '';
-    opts = s.order.map((oi, k) => `<button class="btn opt" data-act="pick" data-i="${oi}" data-k="${k}"><span class="${cls}">${q.type === 'output' ? esc(q.options[oi]) : inline(q.options[oi])}</span></button>`).join('');
+    opts = st.order.map((oi, k) => `<button class="btn opt" data-act="pick" data-i="${oi}" data-k="${k}"><span class="${cls}">${q.type === 'output' ? esc(q.options[oi]) : inline(q.options[oi])}</span></button>`).join('');
   } else if (q.type === 'tf') {
     opts = `<div class="row"><button class="btn opt" data-act="tf" data-v="true" style="text-align:center">Верно</button><button class="btn opt" data-act="tf" data-v="false" style="text-align:center">Неверно</button></div>`;
   } else {
@@ -266,7 +267,9 @@ function renderQuiz() {
   }
   const b = blockById.get(q.block);
   view(`<div class="top"><button class="x" data-act="quit" aria-label="Выйти">✕</button>
-      <div class="bar"><i style="width:${s.i / s.items.length * 100}%"></i></div><div class="count">${s.i + 1}/${s.items.length}</div></div>
+      <button class="nav" data-act="prev" aria-label="Назад"${s.i ? '' : ' disabled'}>‹</button>
+      <div class="bar"><i style="width:${s.i / s.items.length * 100}%"></i></div><div class="count">${s.i + 1}/${s.items.length}</div>
+      <button class="nav" data-act="next" aria-label="Вперёд">›</button></div>
     <section class="card fade">
       <div class="topic">${b ? esc(b.icon) + ' ' : ''}<b>${esc(q.num)}</b> · ${esc(q.topic)} · ${TYPE_LABEL[q.type]}</div>
       <div class="q">${md(q.question)}</div>
@@ -275,60 +278,75 @@ function renderQuiz() {
       <div id="fb"></div>
     </section>`, {
     quit: () => { session = null; go('#/'); },
-    pick: el => answer(q, +el.dataset.i === q.answer, el),
-    tf: el => answer(q, (el.dataset.v === 'true') === q.answer, el),
-    show: () => reveal(q),
-    rate: el => { record(q, el.dataset.r); next(); },
+    pick: el => answer(q, el.dataset.i),
+    tf: el => answer(q, el.dataset.v),
+    show: () => { st.shown = true; reveal(q, st); },
+    rate: el => { if (st.res) return; st.res = el.dataset.r; grade(q, st.res); next(); },
+    prev: () => prev(),
     next: () => next(),
   }, e => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); return prev(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); return next(); }
     const btns = [...app.querySelectorAll('#opts .btn, #fb [data-act="rate"]')].filter(x => !x.disabled);
     const nextBtn = app.querySelector('#fb [data-act="next"]');
     if ((e.key === 'Enter' || e.key === ' ') && (nextBtn || app.querySelector('[data-act="show"]'))) {
       e.preventDefault(); (nextBtn || app.querySelector('[data-act="show"]')).click();
     } else if (/^[1-9]$/.test(e.key) && btns[+e.key - 1]) btns[+e.key - 1].click();
   });
+  // вернулись к уже отвеченной карточке — показываем ответ как было, без повторной оценки
+  if (st.pick !== undefined) showAnswer(q, st, false);
+  else if (st.shown) reveal(q, st, false);
 }
 
-function record(q, res) {
-  grade(q, res);
-  session.results.push({q, res});
-}
+// «вперёд» на неотвеченной карточке — пропуск: в прогресс она не попадает, к ней можно вернуться
 function next() { session.i++; render(); window.scrollTo(0, 0); }
+function prev() { if (session.i > 0) { session.i--; render(); window.scrollTo(0, 0); } }
 
 function sourcesHtml(q) {
   return `<div class="sources">Источники: ${q.sources.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`).join(' · ')}</div>`;
 }
 
-function answer(q, ok, chosen) {
-  const s = session;
-  if (s.answered) return;
-  s.answered = true;
+// pick — data-i варианта (mcq/output) или data-v ('true'/'false') для tf
+function answer(q, pick) {
+  const st = session.state[session.i];
+  if (st.pick !== undefined) return;
+  st.pick = pick;
+  st.res = isRight(q, pick) ? 'ok' : 'bad';
+  grade(q, st.res);
+  showAnswer(q, st, true);
+}
+function isRight(q, pick) { return q.type === 'tf' ? (pick === 'true') === q.answer : +pick === q.answer; }
+
+function showAnswer(q, st, scroll) {
   for (const btn of app.querySelectorAll('#opts .opt')) {
-    const right = q.type === 'tf' ? (btn.dataset.v === 'true') === q.answer : +btn.dataset.i === q.answer;
+    const v = q.type === 'tf' ? btn.dataset.v : btn.dataset.i;
     btn.disabled = true;
-    btn.classList.add(right ? 'ok' : btn === chosen ? 'bad' : 'dim');
+    btn.classList.add(isRight(q, v) ? 'ok' : v === st.pick ? 'bad' : 'dim');
   }
-  record(q, ok ? 'ok' : 'bad');
+  const ok = st.res === 'ok';
   const tfNote = q.type === 'tf' ? ` — утверждение ${q.answer ? 'верное' : 'ложное'}` : '';
   feedback(`<div class="verdict ${ok ? 'ok' : 'bad'}">${ok ? '✓ Верно' : '✗ Неверно'}${tfNote}</div>
     <div class="expl">${md(q.explanation)}${sourcesHtml(q)}</div>
-    <button class="btn primary" data-act="next">${session.i + 1 < session.items.length ? 'Дальше' : 'Итоги'}</button>`);
+    <button class="btn primary" data-act="next">${session.i + 1 < session.items.length ? 'Дальше' : 'Итоги'}</button>`, scroll);
 }
 
-function reveal(q) {
+const RATES = [['bad', 'Не знал'], ['partial', 'Частично'], ['ok', 'Знал']];
+function reveal(q, st, scroll = true) {
   app.querySelector('#opts').innerHTML = '';
+  const rates = st.res
+    ? RATES.map(([r, t]) => `<button class="btn ${r === st.res ? (r === 'ok' ? 'ok' : 'bad') : 'dim'}" disabled style="text-align:center">${t}</button>`).join('')
+    : RATES.map(([r, t]) => `<button class="btn" data-act="rate" data-r="${r}" style="text-align:center">${t}</button>`).join('');
   feedback(`<div class="answer-text">${md(q.answer_text)}</div>
     <div class="expl">${md(q.explanation)}${sourcesHtml(q)}</div>
     <p class="muted" style="text-align:center;margin:0 0 8px">Как ответил?</p>
-    <div class="row"><button class="btn" data-act="rate" data-r="bad" style="text-align:center">Не знал</button>
-    <button class="btn" data-act="rate" data-r="partial" style="text-align:center">Частично</button>
-    <button class="btn" data-act="rate" data-r="ok" style="text-align:center">Знал</button></div>`);
+    <div class="row">${rates}</div>
+    ${st.res ? `<button class="btn primary" data-act="next">${session.i + 1 < session.items.length ? 'Дальше' : 'Итоги'}</button>` : ''}`, scroll);
 }
 
-function feedback(html) {
+function feedback(html, scroll = true) {
   const fb = app.querySelector('#fb');
-  fb.innerHTML = `<div class="fade">${html}</div>`;
-  fb.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  fb.innerHTML = scroll ? `<div class="fade">${html}</div>` : html;
+  if (scroll) fb.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
 
 function renderEmpty() {
@@ -344,17 +362,20 @@ function renderEmpty() {
 }
 
 function renderDone() {
-  const r = session.results;
+  const r = session.items.map((q, i) => ({q, res: session.state[i] && session.state[i].res})).filter(x => x.res);
+  const skipped = session.items.length - r.length;
   const ok = r.filter(x => x.res === 'ok').length;
   const mark = {ok: '✓', bad: '✗', partial: '≈'};
   const short = t => { const s = t.replace(/[`*]/g, ''); return s.length > 70 ? s.slice(0, 70) + '…' : s; };
   view(`<div class="card fade">
       <div class="big">${ok}/${r.length}</div>
-      <p class="muted" style="text-align:center">${session.random ? 'Ответы учтены в прогрессе: ошибки уходят в коробку 1.' : 'Ошибки вернутся в следующей сессии, верные — позже.'}</p>
+      <p class="muted" style="text-align:center">${session.random ? 'Ответы учтены в прогрессе: ошибки уходят в коробку 1.' : 'Ошибки вернутся в следующей сессии, верные — позже.'}${skipped ? ` Пропущено: ${skipped}.` : ''}</p>
       <ul class="result-list">${r.map(x => `<li>${mark[x.res]} ${esc(x.q.num)} <b>${esc(x.q.topic)}</b> — ${esc(short(x.q.question))}</li>`).join('')}</ul>
     </div>
+    ${skipped ? `<button class="btn" data-act="back" style="text-align:center">‹ К пропущенным</button>` : ''}
     <button class="btn primary" data-act="again">Ещё сессия</button>
     <button class="btn ghost" data-act="home">Домой</button>`, {
+    back: () => { session.i = session.items.findIndex((_, i) => !(session.state[i] && session.state[i].res)); render(); window.scrollTo(0, 0); },
     again: () => startSession(session.blockId, false, session.random),
     home: () => { session = null; go('#/'); },
   }, e => { if (e.key === 'Enter') { e.preventDefault(); startSession(session.blockId, false, session.random); } });

@@ -49,6 +49,9 @@ button,.btn{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-colo
 
 .top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .top .x{border:0;background:none;font-size:22px;padding:4px 8px;color:var(--muted)}
+.top .nav{border:1px solid var(--line);background:var(--card);border-radius:10px;width:40px;height:40px;flex:none;
+  font-size:24px;line-height:1;color:var(--text);padding:0 0 3px}
+.top .nav[disabled]{opacity:.35;cursor:default}
 .bar{flex:1;height:6px;background:var(--line);border-radius:99px;overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .count{font-size:13px;color:var(--muted);min-width:44px;text-align:right}
