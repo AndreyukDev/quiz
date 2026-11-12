@@ -3808,5 +3808,747 @@
       "by": "adversary-agent",
       "at": "2026-11-12"
     }
+  },
+  {
+    "id": "java-core-eq-widening-float-01",
+    "num": "1.94",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int a = 16_777_217;",
+        "float f = a;",
+        "System.out.println((a == f) + \" \" + (a == (int) f));"
+      ]
+    },
+    "options": [
+      "true false",
+      "false false",
+      "true true",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "При `int == float` операнды приводятся к общему типу `float` (binary numeric promotion). `16 777 217` = 2²⁴+1 в `float` не помещается (24 бита мантиссы) и округляется до `16 777 216` — и у `f`, и у `a` при сравнении. Поэтому `a == f` — `true`, хотя значения разные.\n`(int) f` возвращает округлённое `16 777 216`, и сравнение уже честное — `false`. То же с `long` и `double` за пределами 2⁵³.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      },
+      {
+        "title": "JLS §5.1.2 Widening Primitive Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-double-compare-01",
+    "num": "1.95",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`double s = 0.1 + 0.2;` Как проверить, что `s` «равно» `0.3`?",
+    "options": [
+      "`Double.compare(s, 0.3) == 0`",
+      "`Math.abs(s - 0.3) < 1e-9` — сравнение с допуском",
+      "`Double.valueOf(s).equals(0.3)`",
+      "Пометить метод `strictfp` и сравнить `s == 0.3`"
+    ],
+    "answer": 1,
+    "explanation": "`0.1 + 0.2` в `double` даёт `0.30000000000000004`, и любое **точное** сравнение вернёт `false`. `Double.compare` и `Double.equals` тоже точные — они только иначе обрабатывают `NaN` и `-0.0`. Помогает допуск, подобранный под масштаб величин (или `BigDecimal`, если нужна точная десятичная арифметика).\n`strictfp` с Java 17 ничего не меняет (JEP 306: вся арифметика и так строгая IEEE 754), а `0.3` всё равно не представимо точно.",
+    "sources": [
+      {
+        "title": "Javadoc: Double",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JEP 306: Restore Always-Strict Floating-Point Semantics",
+        "url": "https://openjdk.org/jeps/306"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-char-int-01",
+    "num": "1.96",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "char c = 'A';",
+        "System.out.println((c == 65) + \" \" + (c + 1) + \" \" + (char) (c + 1));"
+      ]
+    },
+    "options": [
+      "true 66 B",
+      "true B B",
+      "false 66 B",
+      "true A1 B"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true 66 B"
+    },
+    "explanation": "`char` — числовой тип (код UTF-16). В `c == 65` он расширяется до `int`: `'A'` = 65 → `true`. `c + 1` — тоже арифметика `int` → `66`. Чтобы получить символ, нужен явный каст `(char) (c + 1)` → `B`.\nСтрокой `A1` было бы `\"\" + c + 1`: там `+` — конкатенация слева направо.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      },
+      {
+        "title": "JLS §15.18 Additive Operators",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-unbox-mixed-01",
+    "num": "1.97",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long x = 147L;",
+        "int y = 147;",
+        "Long z = 147L;",
+        "System.out.println((x == y) + \" \" + (x == z) + \" \" + x.equals(y));"
+      ]
+    },
+    "options": [
+      "true false false",
+      "true true true",
+      "false false false",
+      "true false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "`x == y`: один операнд примитив → `x` распаковывается, сравниваются числа (`long` и `int`) → `true`. `x == z`: оба `Long` → сравнение **ссылок**; 147 вне кеша −128..127, объекты разные → `false`.\n`x.equals(y)`: `y` упаковывается в `Integer`, а `Long.equals` требует `Long` → `false`. Та же ловушка в `Map<Long, …>.get(1)`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "Javadoc: Long",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Long.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-cache-double-01",
+    "num": "1.98",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код на JDK 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long a = 127L, b = 127L;",
+        "Double c = 1.0, d = 1.0;",
+        "System.out.println((a == b) + \" \" + (c == d));"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "Автоупаковка идёт через `valueOf`. JLS гарантирует одинаковую ссылку при упаковке **констант** `boolean`, `char` до `\\u007f` и целых `byte`/`short`/`int`/`long` в −128..127, а javadoc `Integer.valueOf`/`Long.valueOf` — для любых значений из этого диапазона. Поэтому `Long` 127 из кеша → `true`.\nДля `float` и `double` спецификация кеш не требует, и в OpenJDK 21 его нет: `Double.valueOf(1.0)` каждый раз создаёт новый объект → `false`. Обёртки всегда сравнивают через `equals`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Double",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      },
+      {
+        "title": "OpenJDK 21: Double.valueOf",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/lang/Double.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-cache-flag-01",
+    "num": "1.99",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Integer a = 1000, b = 1000;` В проде `a == b` даёт `true`, а в тестах — `false`. Код одинаковый. Почему?",
+    "options": [
+      "Прод запущен с `-XX:AutoBoxCacheMax=…` (или `-Djava.lang.Integer.IntegerCache.high`): кеш `Integer` расширен, и 1000 попадает в него",
+      "В проде C2 скомпилировал метод и заменил `==` на сравнение значений",
+      "В тестах включены ассерты (`-ea`), они отключают кеш",
+      "`==` на обёртках недетерминирован: зависит от того, успел ли GC объединить одинаковые объекты"
+    ],
+    "answer": 0,
+    "explanation": "JLS гарантирует общую ссылку только для −128..127; верхнюю границу кеша `Integer` можно поднять флагом `-XX:AutoBoxCacheMax` (флаг C2, в обычных сборках HotSpot есть) или свойством `-Djava.lang.Integer.IntegerCache.high`. Влияет только на `Integer`: у `Long`/`Short`/`Byte`/`Character` границы фиксированы.\nJIT семантику `==` не меняет, GC объекты не объединяет. Мораль: код с `==` на обёртках работает «случайно» и зависит от флагов — только `equals`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "OpenJDK 21: Integer.IntegerCache",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/lang/Integer.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-long-integer-01",
+    "num": "1.100",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какая строка **не** скомпилируется?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long id = 1L;",
+        "Integer one = 1;"
+      ]
+    },
+    "options": [
+      "`boolean r = id == 1;`",
+      "`boolean r = id.equals(1);`",
+      "`boolean r = id == one;`",
+      "`boolean r = id == 1L;`"
+    ],
+    "answer": 2,
+    "explanation": "`Long` и `Integer` — несвязанные классы, и `==` между двумя ссылками несвязанных типов — ошибка `incomparable types: Long and Integer`. Нужно распаковать: `id == one.longValue()` или `id.longValue() == one`.\nОстальное компилируется: с литералом `1` или `1L` `id` распаковывается. А `id.equals(1)` вернёт `false` — `1` упакуется в `Integer`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-string-literal-classes-01",
+    "num": "1.101",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Other {",
+        "        static final String HI = \"hi\";",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println((Other.HI == \"hi\") + \" \"",
+        "                + (new String(\"hi\") == \"hi\") + \" \"",
+        "                + (new String(\"hi\").intern() == \"hi\"));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false true",
+      "false false true",
+      "true false false",
+      "true true true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false true"
+    },
+    "explanation": "Строковые литералы с одинаковым содержимым — один объект, даже в разных классах и пакетах: JVM интернирует их в общий пул → `true`. `new String(\"hi\")` всегда создаёт новый объект → `false`. `intern()` возвращает экземпляр из пула, тот же, что у литерала → `true`.\nНа это нельзя опираться в логике: строки из ввода, БД, `substring` и конкатенации в рантайме в пул не попадают.",
+    "sources": [
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      },
+      {
+        "title": "Javadoc: String",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-string-prod-bug-01",
+    "num": "1.102",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`if (order.getStatus() == \"PAID\") ship(order);` В юнит-тесте с `new Order(\"PAID\")` заказ отгружается, а в проде, где статус пришёл из БД, — никогда. Почему?",
+    "options": [
+      "JDBC-драйвер переводит строки в верхний регистр",
+      "`==` сравнивает ссылки: в тесте оба `\"PAID\"` — один литерал из пула, а строка из БД — новый объект с тем же содержимым",
+      "Строки из БД хранятся в другой кодировке, и символы различаются",
+      "`==` для `String` сравнивает `hashCode`, а он зависит от источника строки"
+    ],
+    "answer": 1,
+    "explanation": "`==` на ссылках сравнивает адреса. Литералы `\"PAID\"` в тесте и в коде — один объект из пула, поэтому тест проходит. Строку из `ResultSet` или JSON создают в рантайме — объект другой.\nПравильно: `\"PAID\".equals(order.getStatus())` (null-safe) или вообще `enum` для статуса.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-enum-eq-01",
+    "num": "1.103",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему enum сравнивают через `==`, а не `equals`? (`color` имеет тип `Color`, `Size` — другой enum)",
+    "options": [
+      "`equals` у enum не переопределён и сравнивает `ordinal()`",
+      "`==` быстрее, других отличий нет",
+      "`==` не бросит NPE при `color == null`, а `color == Size.LARGE` не скомпилируется; `color.equals(Size.LARGE)` скомпилируется и молча вернёт `false`",
+      "`equals` для enum бросает `UnsupportedOperationException`"
+    ],
+    "answer": 2,
+    "explanation": "Каждая константа enum существует в одном экземпляре, поэтому `==` корректен. Плюсы перед `equals`: проверка типов на этапе компиляции (`incomparable types: Color and Size`) и отсутствие NPE, если слева `null`.\n`Enum.equals` — `final` и тоже сравнивает ссылки, так что по результату они совпадают, разница в безопасности.",
+    "sources": [
+      {
+        "title": "JLS §8.9 Enum Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9"
+      },
+      {
+        "title": "Javadoc: Enum",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-arrays-deep-01",
+    "num": "1.104",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[][] a = {{1, 2}};",
+        "int[][] b = {{1, 2}};",
+        "System.out.println((a == b) + \" \" + Arrays.equals(a, b) + \" \" + Arrays.deepEquals(a, b));"
+      ]
+    },
+    "options": [
+      "false false true",
+      "false true true",
+      "true true true",
+      "false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false false true"
+    },
+    "explanation": "`==` у массивов сравнивает ссылки → `false`. `Arrays.equals(Object[], Object[])` сравнивает элементы через `equals`, а элементы здесь — вложенные массивы `int[]`, у которых `equals` — сравнение ссылок → тоже `false`.\nДля многомерных нужен `Arrays.deepEquals` — он рекурсивно спускается во вложенные массивы → `true`. Аналогично `Arrays.deepToString` и `deepHashCode`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-record-array-01",
+    "num": "1.105",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    record Tags(String[] values) {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        var a = new Tags(new String[]{\"x\"});",
+        "        var b = new Tags(new String[]{\"x\"});",
+        "        System.out.println(a.equals(b) + \" \"",
+        "                + List.of(new int[]{1}).contains(new int[]{1}));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "false false",
+      "true true",
+      "true false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false false"
+    },
+    "explanation": "Сгенерированный `equals` record сравнивает ссылочные компоненты через `Objects.equals`, то есть через `equals` массива — а он не переопределён и сравнивает ссылки → `false`. `List.contains` тоже вызывает `equals` массива → `false`.\nВ record с массивом переопределяют `equals`/`hashCode`/`toString` через `Arrays.*` или хранят `List.copyOf(...)`. Плюс массив делает record изменяемым — нужна защитная копия.",
+    "sources": [
+      {
+        "title": "JLS §8.10.3 Record Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.3"
+      },
+      {
+        "title": "Javadoc: Record",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-related-types-01",
+    "num": "1.106",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Animal {}",
+        "    static class Dog extends Animal {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        Animal a = new Dog();",
+        "        Dog d = new Dog();",
+        "        Dog d2 = (Dog) a;",
+        "        System.out.println((a == d) + \" \" + (a == d2));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "false true",
+      "false false",
+      "true true",
+      "Не скомпилируется: Animal и Dog нельзя сравнить через =="
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "Типы связаны наследованием, поэтому `==` компилируется. Сравниваются ссылки: `a` и `d` — разные объекты, хоть и одного класса без полей → `false`. Приведение `(Dog) a` объект не копирует, `d2` указывает туда же, куда `a` → `true`.\nДля сравнения по содержимому нужен `equals`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-unrelated-types-01",
+    "num": "1.107",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Какое сравнение компилируется? (`Dog` и `Cat` — несвязанные классы)",
+    "options": [
+      "`Integer i; String s;` … `i == s`",
+      "`Long l; Integer i;` … `l == i`",
+      "`Dog d; Cat c;` … `d == c`",
+      "`Object o; String s;` … `o == s`"
+    ],
+    "answer": 3,
+    "explanation": "`==` между ссылками компилируется, только если один тип можно привести к другому. `Object` — супертип `String`, ссылка `o` вполне может указывать на ту же строку → компилируется.\nДва несвязанных **класса** (`Integer`/`String`, `Long`/`Integer`, `Dog`/`Cat`) не могут ссылаться на один объект — `incomparable types`. Если всё же нужно — сравнивать через `equals` или привести один операнд к общему типу.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-final-interface-01",
+    "num": "1.108",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какая строка **не** скомпилируется? (`r` — `Runnable`)",
+    "options": [
+      "`ArrayList<String> list; … list == r`",
+      "`String s; … s == r`",
+      "`String s; … (Object) s == r`",
+      "`CharSequence cs; … cs == r`"
+    ],
+    "answer": 1,
+    "explanation": "Класс и интерфейс сравнимы, если у класса **может** существовать подкласс, реализующий интерфейс: `ArrayList` не `final` и не закрыт `sealed`, поэтому `list == r` компилируется. `String` — `final` и `Runnable` не реализует, такого объекта быть не может → `incomparable types`.\nДва несвязанных интерфейса (`CharSequence` и `Runnable`) обычно сравнимы — один объект может реализовать оба. Исключения: `sealed`-иерархии (Java 17+) и несовместимые параметризации (`List<String>` и `Collection<Integer>`). Каст к `Object` снимает проверку.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.1.6.1 Allowed Narrowing Reference Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.6.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-null-check-unbox-01",
+    "num": "1.109",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<String, Integer> counts = new HashMap<>(Map.of(\"a\", 1));",
+        "Integer count = counts.get(\"b\");",
+        "System.out.println(count == null);",
+        "System.out.println(count == 0);"
+      ]
+    },
+    "options": [
+      "Напечатает true, затем NullPointerException",
+      "Напечатает true, затем false",
+      "Сразу NullPointerException",
+      "Не скомпилируется: Integer нельзя сравнивать с null"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "`count == null` — сравнение ссылки с `null`, NPE не бывает → `true`. `count == 0`: один операнд примитив, поэтому `count` распаковывается вызовом `intValue()` на `null` → `NullPointerException`.\nТипичный баг со счётчиками в `Map<String, Integer>`. Лечится `getOrDefault(\"b\", 0)` или `merge`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-null-equals-01",
+    "num": "1.110",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`String s = null;` Какое выражение бросит `NullPointerException`?",
+    "options": [
+      "`\"PAID\".equals(s)`",
+      "`Objects.equals(s, \"PAID\")`",
+      "`s.equals(\"PAID\")`",
+      "`s == \"PAID\"`"
+    ],
+    "answer": 2,
+    "explanation": "Вызов метода на `null` — NPE, поэтому `s.equals(…)` падает. Литерал слева (`\"PAID\".equals(s)`) безопасен: контракт `equals` требует для `null` аргумента вернуть `false`. `Objects.equals` сам проверяет `null`, `==` с `null` просто сравнивает ссылки.\nС Java 15 (JEP 358, включено по умолчанию) в сообщении NPE видно, что именно было `null`; имя локальной переменной — только если код скомпилирован с `-g`.",
+    "sources": [
+      {
+        "title": "Javadoc: Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "Javadoc: Objects",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-objects-equals-01",
+    "num": "1.111",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(Objects.equals(null, null) + \" \"",
+        "        + Objects.equals(1, 1L) + \" \"",
+        "        + Objects.equals(new int[]{1}, new int[]{1}));"
+      ]
+    },
+    "options": [
+      "true false false",
+      "true true false",
+      "true true true",
+      "false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "`Objects.equals(a, b)` = `a == b || (a != null && a.equals(b))`: два `null` → `true`. Но это всё тот же `equals`: `1` упаковывается в `Integer`, `1L` — в `Long`, `Integer.equals(Long)` → `false`. У массивов `equals` — сравнение ссылок → `false`.\nДля массивов — `Arrays.equals`/`Objects.deepEquals`; для чисел разных типов — сначала привести к одному типу.",
+    "sources": [
+      {
+        "title": "Javadoc: Objects",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      },
+      {
+        "title": "Javadoc: Integer",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
   }
 ]
