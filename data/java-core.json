@@ -2894,5 +2894,919 @@
       "by": "adversary-agent",
       "at": "2026-11-10"
     }
+  },
+  {
+    "id": "java-core-class-keyword-01",
+    "num": "1.71",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Что делает объявление `class Dog {}`?",
+    "options": [
+      "Объявляет новый ссылочный тип `Dog`; объект `java.lang.Class`, описывающий его, JVM создаст при загрузке класса",
+      "Создаёт при компиляции объект `java.lang.Class` с именем `Dog`, и `Dog` становится его псевдонимом",
+      "Объявляет тип и создаёт один экземпляр `Dog` по умолчанию",
+      "Объявляет подкласс `java.lang.Class<Dog>`"
+    ],
+    "answer": 0,
+    "explanation": "Ключевое слово `class` (маленькая буква) объявляет **тип** в исходном коде — это конструкция языка, а не объект. `java.lang.Class` (большая буква) — обычный библиотечный класс, его экземпляры описывают уже загруженные типы; экземпляр для `Dog` появляется в рантайме, когда загрузчик загрузит класс.\nЭкземпляры `Dog` создаёт `new` (или рефлексия, `clone`, десериализация), а наследоваться от `Class` нельзя — он `final`.",
+    "sources": [
+      {
+        "title": "JLS §8.1 Class Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1"
+      },
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-meta-01",
+    "num": "1.72",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Что такое `java.lang.Class`?",
+    "options": [
+      "Неявный суперкласс всех классов, как `Object`",
+      "`final`-класс; его экземпляры описывают типы в работающей JVM: классы, интерфейсы, enum, record, массивы, примитивы и `void`",
+      "Ключевое слово рефлексии, синоним `class`",
+      "Интерфейс, который компилятор добавляет каждому классу"
+    ],
+    "answer": 1,
+    "explanation": "`Class<T>` — обычный `final`-класс из `java.lang`. Каждый загруженный тип представлен объектом `Class`; `T` — тип, который он описывает (`String.class` имеет тип `Class<String>`).\nСвои объекты `Class` есть даже у примитивов (`int.class`), массивов (`int[].class`) и `void` (`void.class`). Суперкласс всех классов — `Object`, а не `Class`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JLS §12.2 Loading of Classes and Interfaces",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-literal-01",
+    "num": "1.73",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Какая строка **не** скомпилируется?",
+    "options": [
+      "`Class<Dog> c = Dog.class;`",
+      "`Class<int[]> c = int[].class;`",
+      "`Class<Void> c = void.class;`",
+      "`Dog d = new Dog(); var c = d.class;`"
+    ],
+    "answer": 3,
+    "explanation": "Литерал класса `.class` пишется после **имени типа**: класса, интерфейса, массива, примитива или `void` — но не после переменной или значения (`d.class`, `5.class` не компилируются). У объекта вместо этого вызывают `d.getClass()`.\nТип литерала: `C.class` → `Class<C>`, `int.class` → `Class<Integer>`, `void.class` → `Class<Void>`.",
+    "sources": [
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-getclass-type-01",
+    "num": "1.74",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Переменная объявлена как `Dog dog`. Какой статический тип у выражения `dog.getClass()`?",
+    "options": [
+      "`Class<Dog>`",
+      "`Class<? extends Dog>`",
+      "`Class<?>`",
+      "`Class` (сырой)"
+    ],
+    "answer": 1,
+    "explanation": "Объявлено `Class<?> getClass()`, но JLS особо оговаривает: тип вызова — `Class<? extends |T|>`, где `|T|` — стирание статического типа выражения. `Dog` по ссылке может оказаться наследником, поэтому `extends`.\nЛитерал `Dog.class` же точно `Class<Dog>`. У примитива `getClass()` нет (`int cannot be dereferenced`), а на `null` — NPE.",
+    "sources": [
+      {
+        "title": "JLS §4.3.2 The Class Object",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.3.2"
+      },
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-primitive-01",
+    "num": "1.75",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println((int.class == Integer.class) + \" \" + (Integer.TYPE == int.class));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "false false",
+      "Не скомпилируется: `int.class` и `Integer.class` нельзя сравнить через `==`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`int.class` описывает примитив `int`, `Integer.class` — класс-обёртку: это **разные** объекты `Class`. Константа `Integer.TYPE` хранит именно `int.class`.\nСравнение компилируется: оба литерала имеют тип `Class<Integer>` (JLS задаёт тип `int.class` как `Class<Integer>`). Ловушка в рефлексии: метод `foo(int)` ищут через `getMethod(\"foo\", int.class)`, а не `Integer.class`.",
+    "sources": [
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "Javadoc: Integer.TYPE",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-forname-01",
+    "num": "1.76",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    public static void main(String[] args) throws Exception {",
+        "        Class<?> a = Config.class;",
+        "        System.out.print(\"literal \");",
+        "        Class<?> b = Class.forName(\"Config\");",
+        "        System.out.println(\"forName\");",
+        "    }",
+        "}",
+        "",
+        "class Config {",
+        "    static { System.out.print(\"init \"); }",
+        "}"
+      ]
+    },
+    "options": [
+      "literal init forName",
+      "init literal forName",
+      "literal forName",
+      "literal, затем ClassNotFoundException: нужно полное имя с пакетом"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "literal init forName"
+    },
+    "explanation": "Литерал `Config.class` класс **не инициализирует**: static-блок не выполняется. Однопараметровый `Class.forName(name)` — инициализирует (то же, что `forName(name, true, loader)`), отсюда `init`.\nВозвращает `Class<?>`, бросает checked `ClassNotFoundException`, имя — двоичное (`com.acme.Dog`, для вложенного `Outer$Inner`). Здесь класс без пакета, поэтому `\"Config\"` найдено. Загрузить без инициализации: `forName(name, false, loader)`.",
+    "sources": [
+      {
+        "title": "Javadoc: Class.forName",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JLS §12.4.1 When Initialization Occurs",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-getclass-assign-01",
+    "num": "1.77",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Dog dog = new Dog();` Какая строка **не** скомпилируется?",
+    "options": [
+      "`boolean same = dog.getClass() == Dog.class;`",
+      "`Class<Dog> c = dog.getClass();`",
+      "`Class<? extends Dog> c = dog.getClass();`",
+      "`Class<?> c = dog.getClass();`"
+    ],
+    "answer": 1,
+    "explanation": "`dog.getClass()` имеет тип `Class<? extends Dog>`, а дженерики инвариантны: `Class<? extends Dog>` не присваивается в `Class<Dog>` (ошибка про `Class<CAP#1>`). Нужен литерал `Dog.class` или каст.\nСравнение `==` компилируется, потому что типы приводимы друг к другу, и в рантайме даст `true`: объект `Class` для `Dog` один (в пределах загрузчика). А вот `cat.getClass() == Dog.class` для несвязанного класса `Cat` — ошибка `incomparable types`.",
+    "sources": [
+      {
+        "title": "JLS §4.3.2 The Class Object",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.3.2"
+      },
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-runtime-class-01",
+    "num": "1.78",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Animal {}",
+        "    static class Dog extends Animal {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        Animal a = new Dog();",
+        "        System.out.println(a.getClass().getSimpleName() + \" \"",
+        "                + (a.getClass() == Animal.class) + \" \"",
+        "                + (a instanceof Animal));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Dog false true",
+      "Animal true true",
+      "Dog true true",
+      "Animal false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Dog false true"
+    },
+    "explanation": "`getClass()` возвращает класс **объекта** в рантайме, а не тип переменной. Объект создан как `Dog`, поэтому `Dog`, и `a.getClass() == Animal.class` — `false`.\n`instanceof` проверяет «является ли» с учётом наследования, поэтому `true`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-instanceof-null-01",
+    "num": "1.79",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "output",
+    "level": "middle",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Animal {}",
+        "    static class Dog extends Animal {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        Animal a = null;",
+        "        Object o = new Dog();",
+        "        System.out.println((a instanceof Animal) + \" \" + (o instanceof Animal));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "NullPointerException на первой проверке",
+      "Не скомпилируется: Object нельзя проверять на Animal"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`instanceof` с `null` слева всегда даёт `false`, без NPE — поэтому отдельная проверка на `null` перед ним не нужна.\n`o instanceof Animal` — `true`: объект `Dog`, а `Dog` является `Animal`. Проверка учитывает всю иерархию, в том числе интерфейсы.",
+    "sources": [
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-getclass-proxy-01",
+    "num": "1.80",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`equals` в JPA-сущности `User` начинается с `if (o == null || getClass() != o.getClass()) return false;`. `user` загружен в одной сессии (теперь отсоединён), а `proxy` — ленивый прокси той же записи из другой сессии (`getReference` или связь, Hibernate). Что вернёт `user.equals(proxy)`?",
+    "options": [
+      "`true`: прокси делегирует `getClass()` настоящей сущности",
+      "`false`: класс прокси — сгенерированный наследник `User`, точное сравнение классов не проходит",
+      "`LazyInitializationException`: `getClass()` инициализирует прокси",
+      "`NullPointerException`: у неинициализированного прокси поля `null`"
+    ],
+    "answer": 1,
+    "explanation": "Ленивый прокси Hibernate — сгенерированный в рантайме **подкласс** сущности. `getClass()` — `final`-метод `Object`, переопределить его нельзя, и он честно возвращает класс прокси. Поэтому `getClass() != o.getClass()` и запись «не равна сама себе».\n`instanceof` такую проверку проходит. Если нужен точный класс — `Hibernate.getClass(o)`. Внутри одной сессии такой пары не бывает: Hibernate гарантирует один Java-объект на строку. Плюс в `equals` сущности читать поля через геттеры: у прокси сами поля не заполнены.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "Hibernate ORM User Guide: equals() and hashCode()",
+        "url": "https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#mapping-model-pojo-equalshashcode"
+      },
+      {
+        "title": "Hibernate ORM User Guide: Define a custom entity proxy",
+        "url": "https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#entity-proxy"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-assignable-01",
+    "num": "1.81",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Animal {}",
+        "    static class Dog extends Animal {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(Animal.class.isAssignableFrom(Dog.class) + \" \"",
+        "                + Dog.class.isAssignableFrom(Animal.class) + \" \"",
+        "                + Animal.class.isInstance(null));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false false",
+      "false true false",
+      "true false true",
+      "true true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "`A.isAssignableFrom(B)` читается «в переменную типа `A` можно присвоить `B`?»: `Animal` ← `Dog` — да, `Dog` ← `Animal` — нет. Направление легко перепутать.\n`isInstance(x)` — динамический `instanceof`, и как он, на `null` даёт `false`. Нужны, когда тип известен только в рантайме (`Class<?>` в переменной), а не написан в коде.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-wildcard-01",
+    "num": "1.82",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Тип заранее неизвестен (например, результат `Class.forName`). Как правильно объявить переменную, не теряя проверок дженериков?",
+    "options": [
+      "`Class<?> c`",
+      "`Class<Object> c`",
+      "`Class c`",
+      "`Class<? super Object> c`"
+    ],
+    "answer": 0,
+    "explanation": "`Class<?>` — «объект `Class` какого-то типа»: в него присваивается любой `Class<X>`, и компилятор продолжает проверять дженерики.\n`Class<Object>` не годится: дженерики инвариантны, `Class<Object> c = String.class` не компилируется. `Class<? super Object>` принимает только `Class<Object>`. Сырой `Class` компилируется, но отключает проверку дженериков (например, `getAnnotation` вернёт просто `Annotation`).",
+    "sources": [
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      },
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-raw-01",
+    "num": "1.83",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что произойдёт? (`@Table` с `RetentionPolicy.RUNTIME`, класс `Dog` им помечен)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Class c = Dog.class;",
+        "Table t = c.getAnnotation(Table.class);"
+      ]
+    },
+    "options": [
+      "Скомпилируется с предупреждением `rawtypes` и вернёт аннотацию",
+      "Скомпилируется, но в рантайме будет `ClassCastException`",
+      "Не скомпилируется: у сырого `Class` метод `getAnnotation` возвращает `Annotation`",
+      "Не скомпилируется: аннотацию нельзя передавать как `Table.class`"
+    ],
+    "answer": 2,
+    "explanation": "У сырого типа стираются **все** дженерики в членах, даже не связанные с параметром класса. `<A extends Annotation> A getAnnotation(Class<A>)` превращается в `Annotation getAnnotation(Class)`, и присвоить результат в `Table` без каста нельзя: `incompatible types: Annotation cannot be converted to Table`.\nС `Class<?> c` код компилируется. Сырые типы оставлены для совместимости с кодом до Java 5; в новом коде их не пишут.",
+    "sources": [
+      {
+        "title": "JLS §4.8 Raw Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-type-token-01",
+    "num": "1.84",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Нужно отобрать из `List<?>` элементы типа `T`. Какая реализация компилируется и работает правильно?",
+    "options": [
+      "`<T> List<T> pick(List<?> src)` с проверкой `if (o instanceof T) r.add((T) o);`",
+      "`<T> List<T> pick(List<?> src)` с `try { r.add((T) o); } catch (ClassCastException e) {}`",
+      "`<T> List<T> pick(List<?> src, Class<T> type)` с `if (type.isInstance(o)) r.add(type.cast(o));`",
+      "`<T> List<T> pick(List<?> src)` с `if (T.class.isInstance(o)) r.add((T) o);`"
+    ],
+    "answer": 2,
+    "explanation": "`T` стирается: в рантайме его нет, поэтому `o instanceof T` (`Object cannot be safely cast to T`) и `T.class` (`cannot select from a type variable`) не компилируются. Объект `Class<T>` — обычное значение, он доживает до рантайма, и через него работают `isInstance`, `cast`, `isAssignableFrom`.\nВариант с `catch` компилируется (с `unchecked`), но приведение `(T)` после стирания ничего не проверяет: исключения не будет, в список попадёт всё подряд, а `ClassCastException` вылетит позже у вызывающего.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-token-needed-01",
+    "num": "1.85",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В каком методе параметр `Class<T>` действительно нужен?",
+    "options": [
+      "`<T> T first(List<T> list, Class<T> type)`",
+      "`<T> void swap(T[] arr, int i, int j, Class<T> type)`",
+      "`<T> boolean same(T a, T b, Class<T> type)`",
+      "`<T> T fromJson(String json, Class<T> type)`"
+    ],
+    "answer": 3,
+    "explanation": "`Class<T>` нужен, когда внутри метода тип надо знать **в рантайме**: создать объект, проверить, привести. Парсер должен понять, объект какого класса строить из JSON, а взять это из `T` нельзя — он стёрт (так устроен `ObjectMapper.readValue(json, Dog.class)`).\nВ остальных методах с объектами типа `T` работают как с непрозрачными значениями: тип нужен только компилятору, и хватает `T`. Лишний `Class<T>` только загромождает вызов.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-erasure-01",
+    "num": "1.86",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`o` объявлена как `Object`. Что из этого компилируется в Java 21?",
+    "options": [
+      "`Class<?> c = List<String>.class;`",
+      "`boolean b = o instanceof List<String>;`",
+      "`boolean b = o instanceof List<?>;`",
+      "`Class<List<String>> c = List.class;`"
+    ],
+    "answer": 2,
+    "explanation": "Объект `Class` один на `List` — для `List<String>` отдельного нет, поэтому литерала `List<String>.class` синтаксически не существует, а `List.class` имеет тип `Class<List>`, который не присваивается в `Class<List<String>>`.\n`instanceof` с непроверяемым в рантайме типом допустим только если приведение безопасно: из `Object` в `List<String>` — нет (`cannot be safely cast`). `List<?>` — reifiable, можно. С Java 16 `c instanceof List<String>` компилируется, если `c` — `Collection<String>`.",
+    "sources": [
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-new-instance-01",
+    "num": "1.87",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Как создать объект типа `T` внутри generic-метода в Java 21?",
+    "options": [
+      "`return new T();`",
+      "`return T.class.getDeclaredConstructor().newInstance();`",
+      "Принять параметр `Class<T> type` и вызвать `type.getDeclaredConstructor().newInstance()`",
+      "`return (T) new Object();` — приведение проверится при вызове метода"
+    ],
+    "answer": 2,
+    "explanation": "`T` стёрт, поэтому ни `new T()`, ни `T.class` не компилируются — тип надо передать объектом `Class<T>`. `getDeclaredConstructor().newInstance()` бросает checked `ReflectiveOperationException` и заворачивает исключения конструктора в `InvocationTargetException`.\n`type.newInstance()` тоже работает, но устарел с Java 9: он пробрасывает checked-исключения конструктора в обход проверки компилятора. `(T) new Object()` компилируется, но вернёт `Object`, и `ClassCastException` вылетит у вызывающего.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.9.1 Determining the Class being Instantiated",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-explicit-type-arg-01",
+    "num": "1.88",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Есть `static <T> void print(T t)` в классе `Main`. Как явно указать `T`?",
+    "options": [
+      "`Main.<String>print(\"hi\");`",
+      "`<String>print(\"hi\");`",
+      "`print<String>(\"hi\");`",
+      "`Main.print<String>(\"hi\");`"
+    ],
+    "answer": 0,
+    "explanation": "Явный аргумент типа пишется между точкой и именем метода, и перед ним обязательно квалификатор: `Main.<String>print(…)`, `this.<String>m(…)`, `obj.<String>m(…)`. Без квалификатора (`<String>print`) — синтаксическая ошибка, синтаксис как в C++/C# (`print<String>`) в Java не существует.\nОбычно `T` выводится сам. Явно указывают редко: когда вывод даёт не тот тип или его не из чего вывести (например, `Collections.<String>emptyList()` в аргументе до Java 8).",
+    "sources": [
+      {
+        "title": "JLS §15.12 Method Invocation Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-capture-01",
+    "num": "1.89",
+    "block": "java-core",
+    "topic": "Class, getClass и instanceof",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что будет с вызовом?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "static <T> void print(T value, Class<T> type) { … }",
+        "",
+        "print(\"1234\", \"1234\".getClass());"
+      ]
+    },
+    "options": [
+      "Скомпилируется: `T` выведется как `String`",
+      "Не скомпилируется: `\"1234\".getClass()` имеет тип `Class<? extends String>`, а не `Class<String>`",
+      "Скомпилируется, но в рантайме `ClassCastException`",
+      "Скомпилируется с предупреждением `unchecked`"
+    ],
+    "answer": 1,
+    "explanation": "`getClass()` возвращает `Class<? extends String>` — даже для `final String`. После захвата это `Class<CAP#1>`, значит `T = CAP#1`, а `String` не подтип `CAP#1` → `method print cannot be applied to given types`.\nИсправить: передать литерал `String.class` (точно `Class<String>`) или ослабить сигнатуру до `Class<? extends T>`.",
+    "sources": [
+      {
+        "title": "JLS §4.3.2 The Class Object",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.3.2"
+      },
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-contract-01",
+    "num": "1.90",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Что **не** входит в контракт `Object.equals`?",
+    "options": [
+      "Рефлексивность: `x.equals(x)` — `true`",
+      "Симметричность: `x.equals(y)` тогда и только тогда, когда `y.equals(x)`",
+      "Объекты с одинаковым `hashCode()` обязаны быть равны по `equals`",
+      "`x.equals(null)` — `false` для любого не-`null` `x`"
+    ],
+    "answer": 2,
+    "explanation": "Контракт `equals`: рефлексивность, симметричность, транзитивность, согласованность и `x.equals(null) == false`. Требование к хешу обратное: **равные** объекты обязаны иметь равные `hashCode()`. Одинаковый хеш у неравных объектов — коллизия, это нормально.\nШаблон: `this == o` → `if (!(o instanceof Dog other)) return false` → сравнение полей. `instanceof` заодно отсекает `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-cast-01",
+    "num": "1.91",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Dog {",
+        "        final String name;",
+        "        Dog(String name) { this.name = name; }",
+        "",
+        "        @Override public boolean equals(Object o) {",
+        "            Dog d = (Dog) o;",
+        "            return name.equals(d.name);",
+        "        }",
+        "        @Override public int hashCode() { return name.hashCode(); }",
+        "    }",
+        "",
+        "    static String test(Dog dog, Object o) {",
+        "        try { return String.valueOf(dog.equals(o)); }",
+        "        catch (RuntimeException e) { return e.getClass().getSimpleName(); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Dog rex = new Dog(\"Rex\");",
+        "        System.out.println(test(rex, \"x\") + \" \" + test(rex, null));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "ClassCastException NullPointerException",
+      "ClassCastException ClassCastException",
+      "false false",
+      "false NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "ClassCastException NullPointerException"
+    },
+    "explanation": "Приведение без проверки: `(Dog) \"x\"` бросает `ClassCastException`. А `(Dog) null` проходит — `null` приводится к любому ссылочному типу, и NPE вылетает уже на `d.name`. Обе ветки нарушают контракт: `equals` с чужим типом или `null` должен вернуть `false`.\nПравильно: `if (!(o instanceof Dog d)) return false;` до любого обращения к полям.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-symmetry-01",
+    "num": "1.92",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Point {",
+        "        final int x, y;",
+        "        Point(int x, int y) { this.x = x; this.y = y; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof Point p && x == p.x && y == p.y;",
+        "        }",
+        "        @Override public int hashCode() { return 31 * x + y; }",
+        "    }",
+        "",
+        "    static class ColorPoint extends Point {",
+        "        final String color;",
+        "        ColorPoint(int x, int y, String color) { super(x, y); this.color = color; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof ColorPoint cp && super.equals(cp) && color.equals(cp.color);",
+        "        }",
+        "        @Override public int hashCode() { return 31 * super.hashCode() + color.hashCode(); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Point p = new Point(1, 2);",
+        "        Point cp = new ColorPoint(1, 2, \"red\");",
+        "        System.out.println(p.equals(cp) + \" \" + cp.equals(p));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "`Point.equals` через `instanceof` пускает наследника и сравнивает только `x, y` → `true`. `ColorPoint.equals` требует `ColorPoint` → `false`. Симметричность нарушена: `List.of(cp).contains(p)` — `true`, а `List.of(p).contains(cp)` — `false`. Заодно сломан контракт `hashCode`: `p.equals(cp)`, а хеши разные.\n`instanceof` в `equals` корректен, если наследники не добавляют значимых полей (надёжнее — `final` класс или `final equals`). `getClass() != o.getClass()` сохраняет симметричность, но наследник больше не равен родителю и ломается на прокси. Обычно лучше композиция: `ColorPoint` содержит `Point`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-no-hashcode-01",
+    "num": "1.93",
+    "block": "java-core",
+    "topic": "equals / hashCode / compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа? (`hashCode` не переопределён)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Dog {",
+        "        final String name;",
+        "        Dog(String name) { this.name = name; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof Dog d && name.equals(d.name);",
+        "        }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Set<Dog> dogs = new HashSet<>();",
+        "        dogs.add(new Dog(\"Rex\"));",
+        "        dogs.add(new Dog(\"Rex\"));",
+        "        System.out.println(dogs.size() + \" \" + dogs.contains(new Dog(\"Rex\")));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "1 true",
+      "2 false",
+      "2 true",
+      "1 false"
+    ],
+    "answer": 1,
+    "expect": {
+      "stdout": "2 false"
+    },
+    "explanation": "`HashSet` сначала ищет по хешу, и только среди элементов с тем же хешем вызывает `equals`. Без переопределения `hashCode()` берётся identity-хеш, у двух разных объектов он практически всегда разный — до `equals` дело не доходит. Отсюда дубль в множестве и промах `contains`.\nПравило: переопределил `equals` — переопределяй `hashCode` по тем же полям. Проще всего — `record` или `Objects.hash(...)`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "Javadoc: java.util.HashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
   }
 ]
