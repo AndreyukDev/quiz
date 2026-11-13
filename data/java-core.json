@@ -4550,5 +4550,81 @@
       "by": "adversary-agent",
       "at": "2026-11-12"
     }
+  },
+  {
+    "id": "java-core-eq-integer-decrement-cache-01",
+    "num": "1.112",
+    "block": "java-core",
+    "topic": "Сравнение: == и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer a = 128, b = 128;",
+        "Integer c = a;",
+        "System.out.print(a == b);",
+        "a--;",
+        "b--;",
+        "System.out.println(\" \" + (a == b) + \" \" + c);"
+      ]
+    },
+    "options": [
+      "false true 128",
+      "false false 127",
+      "false true 127",
+      "false false 128"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true 128"
+    },
+    "explanation": "`Integer` неизменяемый: `a--` не меняет объект, а распаковывает значение, вычитает 1 и **упаковывает заново** через `Integer.valueOf(127)` (JLS §15.14.3). Переменная `a` начинает ссылаться на другой объект, а `c` по-прежнему указывает на старый со значением 128.\n128 вне гарантированного кеша −128..127 → два разных объекта, `false`. После декремента 127 берётся из кеша, у `a` и `b` один и тот же объект → `true`. Тот же `==` даёт разный результат в зависимости от значения, поэтому обёртки сравнивают только через `equals`.",
+    "sources": [
+      {
+        "title": "JLS §15.14.3 Postfix Decrement Operator --",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.14.3"
+      },
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Integer.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "claude",
+      "at": "2026-11-14"
+    }
+  },
+  {
+    "id": "java-core-primitives-sizes-01",
+    "num": "1.113",
+    "block": "java-core",
+    "topic": "Примитивы и операторы",
+    "type": "recall",
+    "level": "middle",
+    "question": "Назови все 8 примитивов Java: сколько бит занимает каждый, знаковый ли он и какой у него диапазон. Сколько занимает `boolean`?",
+    "answer_text": "Целые, знаковые, в дополнительном коде:\n- `byte` — 8 бит, −128..127\n- `short` — 16 бит, −32 768..32 767\n- `int` — 32 бита, ≈ ±2,1 млрд (−2³¹..2³¹−1)\n- `long` — 64 бита, −2⁶³..2⁶³−1\n\n`char` — 16 бит, **беззнаковый**, 0..65 535: это единица UTF-16, а не «символ». Символы за пределами BMP (например, эмодзи) занимают два `char`.\n\nЧисла с плавающей точкой по IEEE 754: `float` — 32 бита (≈ 7 значащих цифр), `double` — 64 бита (≈ 15–16 цифр).\n\n`boolean` — размер **не задан** ни в JLS, ни в JVMS. Отдельной инструкции байткода для него нет: в выражениях и локальных переменных он работает как `int`. Массив `boolean[]` в HotSpot хранится как `byte[]`, по байту на элемент. Поле объекта обычно занимает 1 байт, но это деталь реализации.\n\nРазмеры фиксированы и не зависят от платформы, в отличие от C. Их можно получить в коде: `Integer.SIZE` (биты) и `Integer.BYTES` (байты).",
+    "explanation": "Размеры целых и плавающих типов фиксированы в JLS §4.2. `char` — единственный беззнаковый тип. У `boolean` размера в спецификации нет: в JVM он представлен как `int`, а массивы — как `byte[]` (JVMS §2.3.4).",
+    "sources": [
+      {
+        "title": "JLS §4.2 Primitive Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2"
+      },
+      {
+        "title": "JVMS §2.3.4 The boolean Type",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.3.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "claude",
+      "at": "2026-11-14"
+    }
   }
 ]
