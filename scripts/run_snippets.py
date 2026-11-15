@@ -3,7 +3,7 @@
 
 Запуск:
     python3 scripts/run_snippets.py                  # все блоки
-    python3 scripts/run_snippets.py java-core        # один блок
+    python3 scripts/run_snippets.py java-boxing      # один блок
     python3 scripts/run_snippets.py --id <id>        # один вопрос, с полным выводом
 
 Сниппет без `static void main` считается телом main: его оборачивают в класс

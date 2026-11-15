@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-records-array-component-01",
-    "num": "4.1",
+    "num": "12.1",
     "block": "java-modern",
     "topic": "Records",
     "type": "output",
@@ -45,7 +45,7 @@
   },
   {
     "id": "java-core-records-compact-ctor-01",
-    "num": "4.2",
+    "num": "12.2",
     "block": "java-modern",
     "topic": "Records",
     "type": "mcq",
@@ -87,7 +87,7 @@
   },
   {
     "id": "java-core-records-extends-01",
-    "num": "4.3",
+    "num": "12.3",
     "block": "java-modern",
     "topic": "Records",
     "type": "tf",
@@ -113,7 +113,7 @@
   },
   {
     "id": "java-core-records-vs-lombok-recall-01",
-    "num": "4.4",
+    "num": "12.4",
     "block": "java-modern",
     "topic": "Records",
     "type": "recall",
@@ -143,7 +143,7 @@
   },
   {
     "id": "java-core-sealed-permitted-01",
-    "num": "4.5",
+    "num": "12.5",
     "block": "java-modern",
     "topic": "Sealed",
     "type": "mcq",
@@ -179,7 +179,7 @@
   },
   {
     "id": "java-core-sealed-exhaustive-switch-01",
-    "num": "4.6",
+    "num": "12.6",
     "block": "java-modern",
     "topic": "Sealed",
     "type": "mcq",
@@ -226,7 +226,7 @@
   },
   {
     "id": "java-core-sealed-eval-01",
-    "num": "4.7",
+    "num": "12.7",
     "block": "java-modern",
     "topic": "Sealed",
     "type": "output",
@@ -285,7 +285,7 @@
   },
   {
     "id": "java-core-sealed-why-recall-01",
-    "num": "4.8",
+    "num": "12.8",
     "block": "java-modern",
     "topic": "Sealed",
     "type": "recall",
@@ -307,7 +307,7 @@
   },
   {
     "id": "java-core-patterns-switch-null-01",
-    "num": "4.9",
+    "num": "12.9",
     "block": "java-modern",
     "topic": "Pattern matching",
     "type": "tf",
@@ -333,7 +333,7 @@
   },
   {
     "id": "java-core-patterns-dominance-01",
-    "num": "4.10",
+    "num": "12.10",
     "block": "java-modern",
     "topic": "Pattern matching",
     "type": "output",
@@ -380,7 +380,7 @@
   },
   {
     "id": "java-core-patterns-nested-record-01",
-    "num": "4.11",
+    "num": "12.11",
     "block": "java-modern",
     "topic": "Pattern matching",
     "type": "output",
@@ -426,7 +426,7 @@
   },
   {
     "id": "java-core-patterns-flow-scoping-01",
-    "num": "4.12",
+    "num": "12.12",
     "block": "java-modern",
     "topic": "Pattern matching",
     "type": "mcq",

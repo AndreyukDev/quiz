@@ -1,0 +1,427 @@
+[
+  {
+    "id": "java-core-boxing-ternary-npe-01",
+    "num": "2.1",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer cached = null;",
+        "boolean hit = true;",
+        "Integer v = hit ? cached : 0;",
+        "System.out.println(v);"
+      ]
+    },
+    "options": [
+      "NullPointerException",
+      "null",
+      "0",
+      "Не скомпилируется: тернарный оператор с null и int"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Второй операнд `Integer`, третий `int` — это числовой условный оператор, и его тип `int`, а не `Integer`. Поэтому `cached` распаковывается ещё до присваивания, и `null` даёт NPE, хотя слева `Integer`.\nТак же ломаются `flag ? map.get(k) : 0` и `return found ? entity.getId() : -1` в методе, возвращающем `Long`. Фикс: оба операнда одного ссылочного типа (`Integer.valueOf(0)`) или `Objects.requireNonNullElse`.",
+    "sources": [
+      {
+        "title": "JLS §15.25 Conditional Operator ? :",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.25"
+      },
+      {
+        "title": "JLS §15.25.2 Numeric Conditional Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.25.2"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-eq-null-check-unbox-01",
+    "num": "2.2",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<String, Integer> counts = new HashMap<>(Map.of(\"a\", 1));",
+        "Integer count = counts.get(\"b\");",
+        "System.out.println(count == null);",
+        "System.out.println(count == 0);"
+      ]
+    },
+    "options": [
+      "Напечатает true, затем NullPointerException",
+      "Напечатает true, затем false",
+      "Сразу NullPointerException",
+      "Не скомпилируется: Integer нельзя сравнивать с null"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "`count == null` — сравнение ссылки с `null`, NPE не бывает → `true`. `count == 0`: один операнд примитив, поэтому `count` распаковывается вызовом `intValue()` на `null` → `NullPointerException`.\nТипичный баг со счётчиками в `Map<String, Integer>`. Лечится `getOrDefault(\"b\", 0)` или `merge`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-boxing-long-contains-01",
+    "num": "2.3",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Set<Long> ids = new HashSet<>(List.of(1L, 2L, 3L));",
+        "int id = 2;",
+        "System.out.println(ids.contains(id) + \" \" + ids.contains((long) id));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "Не скомпилируется: contains ожидает Long",
+      "true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`contains`, `remove`, `Map.get` принимают `Object`, поэтому компилятор молча упаковывает `int` в `Integer`. `Integer.equals(Long)` всегда `false`, так что элемент «не находится».\nТипичный баг: `Map<Long, User>` и `get(intId)` всегда возвращают `null`. IDE и Error Prone (`CollectionIncompatibleType`) это ловят, `javac` — нет.",
+    "sources": [
+      {
+        "title": "Javadoc: Collection.contains",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collection.html"
+      },
+      {
+        "title": "Javadoc: Integer.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-boxing-mixed-eq-01",
+    "num": "2.4",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "tf",
+    "level": "senior",
+    "question": "`Long x = 1000L; long y = 1000L;` — выражение `x == y` сравнивает ссылки, поэтому вне кеша (-128..127) даст `false`.",
+    "answer": false,
+    "explanation": "Неверно. Если один операнд `==` примитив, а другой обёртка, обёртка распаковывается и сравниваются значения: `x == y` — `true`. Ссылки сравниваются, только когда оба операнда ссылочные (`Long == Long`).\nОбратная сторона: если `x == null`, распаковка бросит NPE.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.1.8 Unboxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.8"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-eq-unbox-mixed-01",
+    "num": "2.5",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long x = 147L;",
+        "int y = 147;",
+        "Long z = 147L;",
+        "System.out.println((x == y) + \" \" + (x == z) + \" \" + x.equals(y));"
+      ]
+    },
+    "options": [
+      "true false false",
+      "true true true",
+      "false false false",
+      "true false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "`x == y`: один операнд примитив → `x` распаковывается, сравниваются числа (`long` и `int`) → `true`. `x == z`: оба `Long` → сравнение **ссылок**; 147 вне кеша −128..127, объекты разные → `false`.\n`x.equals(y)`: `y` упаковывается в `Integer`, а `Long.equals` требует `Long` → `false`. Та же ловушка в `Map<Long, …>.get(1)`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "Javadoc: Long",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Long.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-long-integer-01",
+    "num": "2.6",
+    "block": "java-boxing",
+    "topic": "Автораспаковка и NPE",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какая строка **не** скомпилируется?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long id = 1L;",
+        "Integer one = 1;"
+      ]
+    },
+    "options": [
+      "`boolean r = id == 1;`",
+      "`boolean r = id.equals(1);`",
+      "`boolean r = id == one;`",
+      "`boolean r = id == 1L;`"
+    ],
+    "answer": 2,
+    "explanation": "`Long` и `Integer` — несвязанные классы, и `==` между двумя ссылками несвязанных типов — ошибка `incomparable types: Long and Integer`. Нужно распаковать: `id == one.longValue()` или `id.longValue() == one`.\nОстальное компилируется: с литералом `1` или `1L` `id` распаковывается. А `id.equals(1)` вернёт `false` — `1` упакуется в `Integer`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-boxing-integer-cache-01",
+    "num": "2.7",
+    "block": "java-boxing",
+    "topic": "Кеш Integer",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код (JVM без доп. флагов)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer a = 127, b = 127;",
+        "Integer c = 128, d = 128;",
+        "System.out.println((a == b) + \" \" + (c == d) + \" \" + c.equals(d));"
+      ]
+    },
+    "options": [
+      "true false true",
+      "true true true",
+      "false false true",
+      "true false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false true"
+    },
+    "explanation": "Автоупаковка идёт через `Integer.valueOf`, а он гарантированно кеширует значения от -128 до 127 (§5.1.7). `127` — один и тот же объект, `128` — два разных, и `==` сравнивает ссылки.\nВерхнюю границу кеша можно поднять (`-XX:AutoBoxCacheMax`), и тогда `c == d` станет `true` — поэтому код, «работающий на тестах», ломается на реальных id. Обёртки сравнивают только через `equals` или после явной распаковки.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Integer.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-eq-integer-decrement-cache-01",
+    "num": "2.8",
+    "block": "java-boxing",
+    "topic": "Кеш Integer",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Integer a = 128, b = 128;",
+        "Integer c = a;",
+        "System.out.print(a == b);",
+        "a--;",
+        "b--;",
+        "System.out.println(\" \" + (a == b) + \" \" + c);"
+      ]
+    },
+    "options": [
+      "false true 128",
+      "false false 127",
+      "false true 127",
+      "false false 128"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true 128"
+    },
+    "explanation": "`Integer` неизменяемый: `a--` не меняет объект, а распаковывает значение, вычитает 1 и **упаковывает заново** через `Integer.valueOf(127)` (JLS §15.14.3). Переменная `a` начинает ссылаться на другой объект, а `c` по-прежнему указывает на старый со значением 128.\n128 вне гарантированного кеша −128..127 → два разных объекта, `false`. После декремента 127 берётся из кеша, у `a` и `b` один и тот же объект → `true`. Тот же `==` даёт разный результат в зависимости от значения, поэтому обёртки сравнивают только через `equals`.",
+    "sources": [
+      {
+        "title": "JLS §15.14.3 Postfix Decrement Operator --",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.14.3"
+      },
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Integer.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "claude",
+      "at": "2026-11-14"
+    }
+  },
+  {
+    "id": "java-core-eq-cache-double-01",
+    "num": "2.9",
+    "block": "java-boxing",
+    "topic": "Кеш Integer",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код на JDK 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Long a = 127L, b = 127L;",
+        "Double c = 1.0, d = 1.0;",
+        "System.out.println((a == b) + \" \" + (c == d));"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "Автоупаковка идёт через `valueOf`. JLS гарантирует одинаковую ссылку при упаковке **констант** `boolean`, `char` до `\\u007f` и целых `byte`/`short`/`int`/`long` в −128..127, а javadoc `Integer.valueOf`/`Long.valueOf` — для любых значений из этого диапазона. Поэтому `Long` 127 из кеша → `true`.\nДля `float` и `double` спецификация кеш не требует, и в OpenJDK 21 его нет: `Double.valueOf(1.0)` каждый раз создаёт новый объект → `false`. Обёртки всегда сравнивают через `equals`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "Javadoc: Double",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      },
+      {
+        "title": "OpenJDK 21: Double.valueOf",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/lang/Double.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-cache-flag-01",
+    "num": "2.10",
+    "block": "java-boxing",
+    "topic": "Кеш Integer",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Integer a = 1000, b = 1000;` В проде `a == b` даёт `true`, а в тестах — `false`. Код одинаковый. Почему?",
+    "options": [
+      "Прод запущен с `-XX:AutoBoxCacheMax=…` (или `-Djava.lang.Integer.IntegerCache.high`): кеш `Integer` расширен, и 1000 попадает в него",
+      "В проде C2 скомпилировал метод и заменил `==` на сравнение значений",
+      "В тестах включены ассерты (`-ea`), они отключают кеш",
+      "`==` на обёртках недетерминирован: зависит от того, успел ли GC объединить одинаковые объекты"
+    ],
+    "answer": 0,
+    "explanation": "JLS гарантирует общую ссылку только для −128..127; верхнюю границу кеша `Integer` можно поднять флагом `-XX:AutoBoxCacheMax` (флаг C2, в обычных сборках HotSpot есть) или свойством `-Djava.lang.Integer.IntegerCache.high`. Влияет только на `Integer`: у `Long`/`Short`/`Byte`/`Character` границы фиксированы.\nJIT семантику `==` не меняет, GC объекты не объединяет. Мораль: код с `==` на обёртках работает «случайно» и зависит от флагов — только `equals`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.7 Boxing Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.7"
+      },
+      {
+        "title": "OpenJDK 21: Integer.IntegerCache",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/lang/Integer.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  }
+]

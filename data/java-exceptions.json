@@ -1,0 +1,327 @@
+[
+  {
+    "id": "java-core-exceptions-finally-return-01",
+    "num": "7.1",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static int f() {",
+        "        int x = 1;",
+        "        try {",
+        "            return x;",
+        "        } finally {",
+        "            x = 2;",
+        "        }",
+        "    }",
+        "",
+        "    static int g() {",
+        "        try {",
+        "            throw new RuntimeException(\"boom\");",
+        "        } finally {",
+        "            return 3;",
+        "        }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(f() + \" \" + g());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "1 3",
+      "2 3",
+      "1, затем RuntimeException: boom",
+      "2, затем RuntimeException: boom"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1 3"
+    },
+    "explanation": "В `f()` значение для `return` вычислено и сохранено до `finally`; изменение локальной `x` на результат не влияет. С изменяемым объектом вернулась бы та же ссылка, и изменения его полей были бы видны.\nВ `g()` `return` из `finally` завершает метод нормально и молча выбрасывает исключение из `try`. Поэтому `return`/`throw` в `finally` — антипаттерн; `javac -Xlint:finally` об этом предупреждает.",
+    "sources": [
+      {
+        "title": "JLS §14.20.2 Execution of try-finally and try-catch-finally",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.2"
+      },
+      {
+        "title": "JLS §14.17 The return Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.17"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-suppressed-01",
+    "num": "7.2",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Res implements AutoCloseable {",
+        "    public void close() { throw new IllegalStateException(\"close\"); }",
+        "}",
+        "try (var r = new Res()) {",
+        "    throw new RuntimeException(\"body\");",
+        "} catch (Exception e) {",
+        "    System.out.println(e.getMessage() + \" \" + e.getSuppressed().length + \" \" + e.getSuppressed()[0].getMessage());",
+        "}"
+      ]
+    },
+    "options": [
+      "body 1 close",
+      "close 1 body",
+      "IllegalStateException: close",
+      "RuntimeException: body"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "body 1 close"
+    },
+    "explanation": "Если бросили и тело, и `close()`, основным остаётся исключение тела, а исключение `close()` прикрепляется к нему через `addSuppressed`.\nВ ручном `try/finally` с `close()` в `finally` было бы наоборот: исключение из `finally` затёрло бы исходное — частая причина «потерянных» ошибок. Ресурсы закрываются в порядке, обратном объявлению, и до выполнения `catch`/`finally` самого try-with-resources.",
+    "sources": [
+      {
+        "title": "JLS §14.20.3.2 Extended try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3.2"
+      },
+      {
+        "title": "Javadoc: Throwable.addSuppressed",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Throwable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-static-init-01",
+    "num": "7.3",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Boom {",
+        "    static int V = Integer.parseInt(\"x\");",
+        "}",
+        "for (int i = 0; i < 2; i++) {",
+        "    try {",
+        "        System.out.println(Boom.V);",
+        "    } catch (Throwable t) {",
+        "        System.out.println(t.getClass().getSimpleName());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "ExceptionInInitializerError\nNoClassDefFoundError",
+      "NumberFormatException\nNumberFormatException",
+      "ExceptionInInitializerError\nExceptionInInitializerError",
+      "ExceptionInInitializerError\n0"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "ExceptionInInitializerError\nNoClassDefFoundError"
+    },
+    "explanation": "Исключение в статическом инициализаторе оборачивается в `ExceptionInInitializerError`, а класс навсегда помечается как ошибочный. Повторная попытка инициализации сразу бросает `NoClassDefFoundError: Could not initialize class …`.\nВ логах прода часто видят именно NCDFE, а настоящая причина случилась раньше. С JDK 18 у NCDFE есть `cause` — синтетический `ExceptionInInitializerError` с текстом и стектрейсом исходного исключения (`Caused by: … [in thread \"main\"]`). Сам объект исходного исключения в цепочке не сохраняется.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "Javadoc: ExceptionInInitializerError",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ExceptionInInitializerError.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-precise-rethrow-recall-01",
+    "num": "7.4",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему этот код компилируется, хотя ловим `Exception`, а метод объявляет только `throws IOException`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "void io() throws IOException { /* ... */ }",
+        "",
+        "void run() throws IOException {",
+        "    try {",
+        "        io();",
+        "    } catch (Exception e) {",
+        "        log(e);",
+        "        throw e;   // почему здесь не нужен throws Exception?",
+        "    }",
+        "}"
+      ]
+    },
+    "answer_text": "Precise rethrow (Java 7): если параметр `catch` final или эффективно final, `throw e` считается бросающим только те проверяемые исключения, которые реально может бросить `try`-блок, которые этот `catch` способен поймать и которые не поймали `catch`-блоки левее. Объявленный тип `Exception` при этом не важен. Здесь это `IOException` (из `io()`) плюс unchecked.\n\nСтоит переприсвоить `e = new Exception()` — точность пропадёт, и компилятор потребует `throws Exception`. Приём удобен для логирования или отката с пробросом без обёртки.",
+    "explanation": "Ключевое: precise rethrow — для эффективно final параметра catch компилятор знает, что реально может бросить try.",
+    "sources": [
+      {
+        "title": "JLS §11.2.2 Exception Analysis of Statements",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-exceptions-twr-init-fail-01",
+    "num": "7.5",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Res(String name) implements AutoCloseable {",
+        "    Res {",
+        "        Objects.requireNonNull(name);",
+        "        System.out.print(\"open \" + name + \"; \");",
+        "    }",
+        "    public void close() { System.out.print(\"close \" + name + \"; \"); }",
+        "}",
+        "try (var a = new Res(\"A\"); var b = new Res(null)) {",
+        "    System.out.print(\"body; \");",
+        "} catch (NullPointerException e) {",
+        "    System.out.print(\"catch NPE\");",
+        "}"
+      ]
+    },
+    "options": [
+      "open A; close A; catch NPE",
+      "open A; catch NPE",
+      "open A; close A; close null; catch NPE",
+      "catch NPE"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "open A; close A; catch NPE"
+    },
+    "explanation": "Ресурсы инициализируются по порядку. Если инициализация второго бросает исключение, тело не выполняется, а уже открытые ресурсы закрываются в обратном порядке — `A` закрыт. Неоткрытый `b` не закрывается: закрывать нечего.\nЭто главное преимущество перед ручным `try/finally` с несколькими ресурсами, где легко забыть закрыть первый при ошибке открытия второго.",
+    "sources": [
+      {
+        "title": "JLS §14.20.3.1 Basic try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3.1"
+      },
+      {
+        "title": "JLS §14.20.3 try-with-resources",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-exceptions-checked-lambda-01",
+    "num": "7.6",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему не компилируется и как правильно исправить?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "void printAll(List<Path> files) throws IOException {",
+        "    files.forEach(p -> System.out.println(Files.readString(p)));",
+        "}"
+      ]
+    },
+    "options": [
+      "`Consumer.accept` не объявляет checked-исключений: `IOException` надо поймать внутри лямбды (и, например, обернуть в `UncheckedIOException`) или написать обычный цикл `for`",
+      "`throws IOException` на `printAll` уже покрывает лямбду — ошибка в другом: `forEach` нельзя вызывать на `List<Path>`",
+      "Лямбда не может вызывать статические методы других классов",
+      "`Files.readString` возвращает `Optional<String>`, нужен `.get()`"
+    ],
+    "answer": 0,
+    "explanation": "Тело лямбды — реализация метода функционального интерфейса, и проверка исключений идёт относительно его `throws`. У `Consumer.accept` его нет, поэтому `throws` объемлющего метода не помогает.\nВарианты: `try/catch` внутри лямбды с `UncheckedIOException`, свой функциональный интерфейс с `throws IOException`, или просто цикл `for` — он сохраняет checked-исключение и читается проще.",
+    "sources": [
+      {
+        "title": "JLS §11.2.3 Exception Checking",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-11.html#jls-11.2.3"
+      },
+      {
+        "title": "JLS §15.27.3 Type of a Lambda Expression",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.3"
+      },
+      {
+        "title": "Javadoc: UncheckedIOException",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/UncheckedIOException.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-exceptions-fast-throw-01",
+    "num": "7.7",
+    "block": "java-exceptions",
+    "topic": "Исключения",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В логах прода NPE без стектрейса: только `java.lang.NullPointerException` и ни одной строки `at …`. Первые часы после деплоя стектрейсы были. Почему?",
+    "options": [
+      "HotSpot (`OmitStackTraceInFastThrow`, включён по умолчанию): после многократного броска в скомпилированном коде C2 подменяет исключение заранее созданным, без стека",
+      "Логгер обрезает стектрейсы, когда в секунду их больше определённого числа",
+      "У NPE из нативного кода не бывает стека",
+      "Helpful NullPointerExceptions (JEP 358) заменяют стек на подробное сообщение"
+    ],
+    "answer": 0,
+    "explanation": "Для «горячих» неявных исключений (NPE, `ArithmeticException`, `ArrayIndexOutOfBounds`, `ClassCastException` и др.) оптимизированный C2 код после многих бросков начинает выбрасывать преаллоцированный экземпляр без стека и без сообщения — ради скорости.\nЧто делать: искать первые вхождения той же ошибки в логах после рестарта, либо запускать с `-XX:-OmitStackTraceInFastThrow`. JEP 358 добавляет сообщение (`Cannot invoke … because … is null`), но стек не убирает.",
+    "sources": [
+      {
+        "title": "OpenJDK 21: globals.hpp — OmitStackTraceInFastThrow",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/hotspot/share/runtime/globals.hpp"
+      },
+      {
+        "title": "JEP 358: Helpful NullPointerExceptions",
+        "url": "https://openjdk.org/jeps/358"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  }
+]

@@ -1,0 +1,240 @@
+[
+  {
+    "id": "java-core-string-pool-constants-01",
+    "num": "3.1",
+    "block": "java-strings",
+    "topic": "Пул строк и ==",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String a = \"hello\";",
+        "String b = \"hel\" + \"lo\";",
+        "final String c = \"hel\";",
+        "String d = c + \"lo\";",
+        "String e = \"hel\";",
+        "String f = e + \"lo\";",
+        "System.out.println((a == b) + \" \" + (a == d) + \" \" + (a == f) + \" \" + (a == f.intern()));"
+      ]
+    },
+    "options": [
+      "true true false true",
+      "true false false true",
+      "true true true true",
+      "false false false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true true false true"
+    },
+    "explanation": "Литералы интернируются. `\"hel\" + \"lo\"` — константное выражение, его вычисляет компилятор, результат тоже из пула.\n`c` — `final` с константным инициализатором, то есть константная переменная, поэтому `c + \"lo\"` тоже константа. `e` не `final`: `e + \"lo\"` вычисляется в рантайме и даёт новый объект. `intern()` возвращает каноничный экземпляр из пула.\nТонкость: «эффективно final» для константности не годится — нужен явный `final`.",
+    "sources": [
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      },
+      {
+        "title": "JLS §15.29 Constant Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.29"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-eq-string-literal-classes-01",
+    "num": "3.2",
+    "block": "java-strings",
+    "topic": "Пул строк и ==",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Other {",
+        "        static final String HI = \"hi\";",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println((Other.HI == \"hi\") + \" \"",
+        "                + (new String(\"hi\") == \"hi\") + \" \"",
+        "                + (new String(\"hi\").intern() == \"hi\"));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false true",
+      "false false true",
+      "true false false",
+      "true true true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false true"
+    },
+    "explanation": "Строковые литералы с одинаковым содержимым — один объект, даже в разных классах и пакетах: JVM интернирует их в общий пул → `true`. `new String(\"hi\")` всегда создаёт новый объект → `false`. `intern()` возвращает экземпляр из пула, тот же, что у литерала → `true`.\nНа это нельзя опираться в логике: строки из ввода, БД, `substring` и конкатенации в рантайме в пул не попадают.",
+    "sources": [
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      },
+      {
+        "title": "Javadoc: String",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-string-prod-bug-01",
+    "num": "3.3",
+    "block": "java-strings",
+    "topic": "Пул строк и ==",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`if (order.getStatus() == \"PAID\") ship(order);` В юнит-тесте с `new Order(\"PAID\")` заказ отгружается, а в проде, где статус пришёл из БД, — никогда. Почему?",
+    "options": [
+      "JDBC-драйвер переводит строки в верхний регистр",
+      "`==` сравнивает ссылки: в тесте оба `\"PAID\"` — один литерал из пула, а строка из БД — новый объект с тем же содержимым",
+      "Строки из БД хранятся в другой кодировке, и символы различаются",
+      "`==` для `String` сравнивает `hashCode`, а он зависит от источника строки"
+    ],
+    "answer": 1,
+    "explanation": "`==` на ссылках сравнивает адреса. Литералы `\"PAID\"` в тесте и в коде — один объект из пула, поэтому тест проходит. Строку из `ResultSet` или JSON создают в рантайме — объект другой.\nПравильно: `\"PAID\".equals(order.getStatus())` (null-safe) или вообще `enum` для статуса.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §3.10.5 String Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-string-pool-intern-recall-01",
+    "num": "3.4",
+    "block": "java-strings",
+    "topic": "Пул строк и ==",
+    "type": "recall",
+    "level": "senior",
+    "question": "Где в HotSpot живёт пул строк, и стоит ли вручную вызывать `intern()` ради экономии памяти?",
+    "answer_text": "С JDK 7 интернированные строки лежат в обычной куче (раньше — в PermGen) и собираются обычными циклами GC. Сам пул — нативная хеш-таблица; с JDK 11 она конкурентная и сама меняет размер (`-XX:StringTableSize` задаёт начальный).\n\nРучной `intern()` — компромисс: экономит память на дубликатах, но каждый вызов — поиск в глобальной таблице, и её же обходит GC. Обычно лучше свой дедуплицирующий кеш в нужном месте или `-XX:+UseStringDeduplication` (JEP 192, изначально только G1, с JDK 18 — все сборщики): GC сам делает одинаковые строки общими по массиву байтов, не меняя семантику `==`.",
+    "explanation": "Ключевое: пул в куче (с JDK 7) и собирается GC; ручной `intern()` — компромисс, альтернатива — дедупликация силами GC.",
+    "sources": [
+      {
+        "title": "JDK 7 Release Notes (interned strings в куче)",
+        "url": "https://www.oracle.com/java/technologies/javase/jdk7-relnotes.html"
+      },
+      {
+        "title": "JEP 192: String Deduplication in G1",
+        "url": "https://openjdk.org/jeps/192"
+      },
+      {
+        "title": "Javadoc: String.intern",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-concat-indy-01",
+    "num": "3.5",
+    "block": "java-strings",
+    "topic": "Конкатенация и методы String",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Как `javac` (Java 9+) компилирует конкатенацию `\"id=\" + id + \", name=\" + name` с не-константными операндами?",
+    "options": [
+      "В `invokedynamic`, который связывается через `StringConcatFactory`; реализацию склейки определяет JDK при линковке, а не javac",
+      "В цепочку `new StringBuilder().append(...).append(...).toString()`",
+      "В последовательные вызовы `String.concat`, по одному на каждый `+`",
+      "В `String.format` с шаблоном, собранным компилятором"
+    ],
+    "answer": 0,
+    "explanation": "JEP 280 (Java 9) заменил генерацию цепочек `StringBuilder` на `invokedynamic` с бутстрапом `java.lang.invoke.StringConcatFactory`. Реализацию склейки теперь определяет JDK при линковке call site, и её можно улучшать без перекомпиляции кода.\nНо `+=` в цикле по-прежнему создаёт новую строку на каждой итерации — там `StringBuilder` всё ещё нужен.",
+    "sources": [
+      {
+        "title": "JEP 280: Indify String Concatenation",
+        "url": "https://openjdk.org/jeps/280"
+      },
+      {
+        "title": "Javadoc: StringConcatFactory",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/invoke/StringConcatFactory.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-string-trim-strip-01",
+    "num": "3.6",
+    "block": "java-strings",
+    "topic": "Конкатенация и методы String",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String s = \"\\u2003text\\u2003\"; // U+2003 EM SPACE",
+        "System.out.println(s.trim().length() + \" \" + s.strip().length());"
+      ]
+    },
+    "options": [
+      "6 4",
+      "4 4",
+      "6 6",
+      "4 6"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "6 4"
+    },
+    "explanation": "`trim()` убирает символы с кодом ≤ `U+0020` — ASCII-пробел и управляющие. EM SPACE (`U+2003`) больше, поэтому `trim()` его не трогает: длина 6.\n`strip()` (Java 11) использует `Character.isWhitespace` и Unicode-пробелы понимает: длина 4. Но и он не всемогущ: неразрывные пробелы (`U+00A0`, `U+2007`, `U+202F`) `isWhitespace` не считает, и `strip()` их оставит.",
+    "sources": [
+      {
+        "title": "Javadoc: String.trim / strip",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+      },
+      {
+        "title": "Javadoc: Character.isWhitespace",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Character.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]

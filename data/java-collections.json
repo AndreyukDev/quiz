@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-hashmap-treeify-01",
-    "num": "2.1",
+    "num": "10.1",
     "block": "java-collections",
     "topic": "HashMap и ConcurrentHashMap",
     "type": "mcq",
@@ -33,7 +33,7 @@
   },
   {
     "id": "java-core-hashmap-mutable-key-01",
-    "num": "2.2",
+    "num": "10.2",
     "block": "java-collections",
     "topic": "HashMap и ConcurrentHashMap",
     "type": "output",
@@ -78,7 +78,7 @@
   },
   {
     "id": "java-core-hashmap-power-of-two-01",
-    "num": "2.3",
+    "num": "10.3",
     "block": "java-collections",
     "topic": "HashMap и ConcurrentHashMap",
     "type": "recall",
@@ -100,7 +100,7 @@
   },
   {
     "id": "java-core-hashmap-chm-null-01",
-    "num": "2.4",
+    "num": "10.4",
     "block": "java-collections",
     "topic": "HashMap и ConcurrentHashMap",
     "type": "tf",
@@ -126,7 +126,7 @@
   },
   {
     "id": "java-core-hashmap-complexity-01",
-    "num": "2.5",
+    "num": "10.5",
     "block": "java-collections",
     "topic": "HashMap и ConcurrentHashMap",
     "type": "mcq",
@@ -162,7 +162,7 @@
   },
   {
     "id": "java-core-cme-penultimate-01",
-    "num": "2.6",
+    "num": "10.6",
     "block": "java-collections",
     "topic": "ConcurrentModification",
     "type": "output",
@@ -211,7 +211,7 @@
   },
   {
     "id": "java-core-cme-cow-snapshot-01",
-    "num": "2.7",
+    "num": "10.7",
     "block": "java-collections",
     "topic": "ConcurrentModification",
     "type": "output",
@@ -253,7 +253,7 @@
   },
   {
     "id": "java-core-cme-structural-01",
-    "num": "2.8",
+    "num": "10.8",
     "block": "java-collections",
     "topic": "ConcurrentModification",
     "type": "mcq",
@@ -285,7 +285,7 @@
   },
   {
     "id": "java-core-colls-listof-contains-null-01",
-    "num": "2.9",
+    "num": "10.9",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -330,7 +330,7 @@
   },
   {
     "id": "java-core-colls-view-vs-copy-01",
-    "num": "2.10",
+    "num": "10.10",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -375,7 +375,7 @@
   },
   {
     "id": "java-core-colls-arrays-aslist-01",
-    "num": "2.11",
+    "num": "10.11",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -421,7 +421,7 @@
   },
   {
     "id": "java-core-colls-reversed-view-01",
-    "num": "2.12",
+    "num": "10.12",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -466,7 +466,7 @@
   },
   {
     "id": "java-core-colls-compare-recall-01",
-    "num": "2.13",
+    "num": "10.13",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "recall",
@@ -496,7 +496,7 @@
   },
   {
     "id": "java-collections-copy-shallow-01",
-    "num": "2.18",
+    "num": "10.18",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "output",
@@ -542,7 +542,7 @@
   },
   {
     "id": "java-collections-array-2d-clone-01",
-    "num": "2.19",
+    "num": "10.19",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "output",
@@ -583,7 +583,7 @@
   },
   {
     "id": "java-collections-aslist-primitive-01",
-    "num": "2.20",
+    "num": "10.20",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -625,7 +625,7 @@
   },
   {
     "id": "java-collections-set-of-duplicates-01",
-    "num": "2.21",
+    "num": "10.21",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -668,7 +668,7 @@
   },
   {
     "id": "java-collections-set-of-order-01",
-    "num": "2.22",
+    "num": "10.22",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "mcq",
@@ -700,7 +700,7 @@
   },
   {
     "id": "java-collections-copyof-identity-01",
-    "num": "2.23",
+    "num": "10.23",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -745,7 +745,7 @@
   },
   {
     "id": "java-collections-sort-fixed-size-01",
-    "num": "2.24",
+    "num": "10.24",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -790,7 +790,7 @@
   },
   {
     "id": "java-collections-removeif-nomatch-01",
-    "num": "2.25",
+    "num": "10.25",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -835,7 +835,7 @@
   },
   {
     "id": "java-collections-tolist-nulls-01",
-    "num": "2.26",
+    "num": "10.26",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -878,7 +878,7 @@
   },
   {
     "id": "java-collections-legacy-factories-01",
-    "num": "2.27",
+    "num": "10.27",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "mcq",
@@ -910,7 +910,7 @@
   },
   {
     "id": "java-collections-list-equals-impl-01",
-    "num": "2.28",
+    "num": "10.28",
     "block": "java-collections",
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
@@ -953,7 +953,7 @@
   },
   {
     "id": "java-collections-toarray-cast-01",
-    "num": "2.29",
+    "num": "10.29",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "output",
@@ -996,7 +996,7 @@
   },
   {
     "id": "java-collections-toarray-larger-01",
-    "num": "2.30",
+    "num": "10.30",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "output",
@@ -1036,7 +1036,7 @@
   },
   {
     "id": "java-collections-toarray-presized-01",
-    "num": "2.31",
+    "num": "10.31",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "mcq",
@@ -1068,7 +1068,7 @@
   },
   {
     "id": "java-collections-toarray-arraystore-01",
-    "num": "2.32",
+    "num": "10.32",
     "block": "java-collections",
     "topic": "Копирование и toArray",
     "type": "output",
@@ -1111,7 +1111,7 @@
   },
   {
     "id": "java-core-colls-sets-order-01",
-    "num": "2.14",
+    "num": "10.14",
     "block": "java-collections",
     "topic": "Выбор коллекции",
     "type": "output",
@@ -1156,7 +1156,7 @@
   },
   {
     "id": "java-core-colls-lru-01",
-    "num": "2.15",
+    "num": "10.15",
     "block": "java-collections",
     "topic": "Выбор коллекции",
     "type": "output",
@@ -1204,7 +1204,7 @@
   },
   {
     "id": "java-core-colls-pq-iteration-01",
-    "num": "2.16",
+    "num": "10.16",
     "block": "java-collections",
     "topic": "Выбор коллекции",
     "type": "tf",
@@ -1226,7 +1226,7 @@
   },
   {
     "id": "java-core-colls-arraylist-linkedlist-recall-01",
-    "num": "2.17",
+    "num": "10.17",
     "block": "java-collections",
     "topic": "Выбор коллекции",
     "type": "recall",

@@ -1,0 +1,666 @@
+[
+  {
+    "id": "java-core-generics-invariance-01",
+    "num": "9.1",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие строки компилируются, и что будет при выполнении (4)?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> ints = new ArrayList<>();",
+        "List<Number> a = ints;              // (1)",
+        "List<? extends Number> b = ints;    // (2)",
+        "List<Object> c = ints;              // (3)",
+        "Object[] d = new Integer[1];        // (4)",
+        "d[0] = \"x\";"
+      ]
+    },
+    "options": [
+      "Компилируются (2) и (4); (4) при выполнении бросит `ArrayStoreException`",
+      "Компилируются (1), (2) и (4); (4) выполнится без ошибок",
+      "Компилируется только (2)",
+      "Компилируются все; (1) и (3) бросят `ClassCastException`"
+    ],
+    "answer": 0,
+    "explanation": "Generics инвариантны: `List<Integer>` не подтип `List<Number>` и `List<Object>`, иначе через `a.add(1.5)` в список целых попал бы `Double`. Ковариантность выражается wildcard'ом: `List<? extends Number>` — но в него ничего, кроме `null`, не добавить.\nМассивы ковариантны (наследие Java 1.0), поэтому (4) компилируется, а проверка переносится в рантайм: массив помнит тип элементов и бросает `ArrayStoreException`. Generics проверяются при компиляции, и типов-аргументов в рантайме нет.",
+    "sources": [
+      {
+        "title": "JLS §4.10.2 Subtyping among Class and Interface Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.10.2"
+      },
+      {
+        "title": "JLS §10.5 Array Store Exception",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-pecs-01",
+    "num": "9.2",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Нужен метод, копирующий элементы из `src` в `dst`, чтобы работал вызов с `List<Number> dst` и `List<Integer> src`. Какая сигнатура правильная?",
+    "options": [
+      "`<T> void copy(List<? super T> dst, List<? extends T> src)`",
+      "`<T> void copy(List<? extends T> dst, List<? super T> src)`",
+      "`<T> void copy(List<T> dst, List<T> src)`",
+      "`void copy(List<Object> dst, List<?> src)`"
+    ],
+    "answer": 0,
+    "explanation": "PECS: Producer Extends, Consumer Super. `src` отдаёт элементы — `? extends T` (читать как `T` можно, писать нельзя). `dst` принимает — `? super T` (писать `T` можно, читается только `Object`). Так объявлен `Collections.copy`.\nС `List<T>` в обоих местах общий `T` для `List<Number>` и `List<Integer>` не выводится: дженерики инвариантны. `List<Object>` не принимает `List<Number>` по той же причине.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.copy",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-extends-add-01",
+    "num": "9.3",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> ints = new ArrayList<>();",
+        "List<? extends Number> nums = ints;",
+        "nums.add(1);",
+        "System.out.println(ints);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "[1]",
+      "ClassCastException",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "Для `List<? extends Number>` компилятор не знает точный тип элементов — это может быть `List<Double>`. Поэтому `add` принимает только `null`: capture conversion превращает тип параметра в неизвестный `CAP#1`, и `Integer` к нему не приводится.\nЭто защита от heap pollution ещё на этапе компиляции.",
+    "sources": [
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-comparable-super-01",
+    "num": "9.4",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Зачем в сигнатуре `static <T extends Comparable<? super T>> T max(Collection<? extends T> c)` написано `? super T`, а не просто `Comparable<T>`?",
+    "options": [
+      "Чтобы подходили типы, сравнимые через предка: `LocalDate` реализует `Comparable<ChronoLocalDate>`, а не `Comparable<LocalDate>`",
+      "Чтобы можно было передать коллекцию `null`-значений",
+      "Чтобы метод работал с raw-типами без предупреждений",
+      "Это нужно только ради совместимости с Java 1.4, в новом коде разницы нет"
+    ],
+    "answer": 0,
+    "explanation": "`Comparable<T>` требовал бы, чтобы `T` умел сравниваться именно с `T`. Но часто `compareTo` объявлен в предке: `LocalDate implements ChronoLocalDate, Comparable<ChronoLocalDate>`, `java.sql.Timestamp` наследует `Comparable<Date>`. С `Comparable<T>` вывод `T = LocalDate` не проходит.\n`? super T` — PECS для потребителя: компаратор «потребляет» `T`, значит подойдёт сравнивающий любой супертип. Так объявлены `Collections.max`, `Collections.sort`, `Comparator.naturalOrder`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      },
+      {
+        "title": "Javadoc: LocalDate",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/LocalDate.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-capture-helper-01",
+    "num": "9.5",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Метод не компилируется. Как исправить, не меняя публичную сигнатуру?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public static void swap(List<?> list, int i, int j) {",
+        "    list.set(i, list.get(j));   // error: incompatible types",
+        "    // ...",
+        "}"
+      ]
+    },
+    "options": [
+      "Вызвать из него приватный generic-метод `<T> void swapHelper(List<T> l, int i, int j)` — компилятор выведет `T` из захваченного типа",
+      "Никак: остаётся только сменить параметр на `List<Object>`",
+      "Добавить `@SuppressWarnings(\"unchecked\")` над методом",
+      "Заменить `?` на `? extends Object` — это снимет ограничение"
+    ],
+    "answer": 0,
+    "explanation": "Каждое использование выражения типа `List<?>` подвергается захвату (capture): `list.get(j)` возвращает свежий `CAP#1`, а `set` у другого захвата ждёт `CAP#2`, и связи между ними компилятор не видит.\nВ helper-методе захваченный тип получает имя `T` — внутри `List<T>` `get` и `set` согласованы. Это стандартный capture helper; `@SuppressWarnings` предупреждения скрывает, но ошибку не убирает, а `? extends Object` — то же самое, что `?`.",
+    "sources": [
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      },
+      {
+        "title": "The Java Tutorials: Wildcard Capture and Helper Methods",
+        "url": "https://docs.oracle.com/javase/tutorial/java/generics/capture.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-class-capture-01",
+    "num": "9.6",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что будет с вызовом?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "static <T> void print(T value, Class<T> type) { … }",
+        "",
+        "print(\"1234\", \"1234\".getClass());"
+      ]
+    },
+    "options": [
+      "Скомпилируется: `T` выведется как `String`",
+      "Не скомпилируется: `\"1234\".getClass()` имеет тип `Class<? extends String>`, а не `Class<String>`",
+      "Скомпилируется, но в рантайме `ClassCastException`",
+      "Скомпилируется с предупреждением `unchecked`"
+    ],
+    "answer": 1,
+    "explanation": "`getClass()` возвращает `Class<? extends String>` — даже для `final String`. После захвата это `Class<CAP#1>`, значит `T = CAP#1`, а `String` не подтип `CAP#1` → `method print cannot be applied to given types`.\nИсправить: передать литерал `String.class` (точно `Class<String>`) или ослабить сигнатуру до `Class<? extends T>`.",
+    "sources": [
+      {
+        "title": "JLS §4.3.2 The Class Object",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.3.2"
+      },
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-explicit-type-arg-01",
+    "num": "9.7",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Есть `static <T> void print(T t)` в классе `Main`. Как явно указать `T`?",
+    "options": [
+      "`Main.<String>print(\"hi\");`",
+      "`<String>print(\"hi\");`",
+      "`print<String>(\"hi\");`",
+      "`Main.print<String>(\"hi\");`"
+    ],
+    "answer": 0,
+    "explanation": "Явный аргумент типа пишется между точкой и именем метода, и перед ним обязательно квалификатор: `Main.<String>print(…)`, `this.<String>m(…)`, `obj.<String>m(…)`. Без квалификатора (`<String>print`) — синтаксическая ошибка, синтаксис как в C++/C# (`print<String>`) в Java не существует.\nОбычно `T` выводится сам. Явно указывают редко: когда вывод даёт не тот тип или его не из чего вывести (например, `Collections.<String>emptyList()` в аргументе до Java 8).",
+    "sources": [
+      {
+        "title": "JLS §15.12 Method Invocation Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-generics-erasure-clash-01",
+    "num": "9.8",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Почему не компилируется класс с двумя методами `void process(List<String> l)` и `void process(List<Integer> l)`?",
+    "options": [
+      "После стирания у обоих сигнатура `process(List)` — конфликт имён (same erasure)",
+      "Перегрузка по generic-параметрам запрещена только для `static` методов",
+      "Ошибка возникает только при вызове `process(null)`, без вызова класс компилируется",
+      "Класс компилируется; конфликт проявится только в рантайме при вызове с raw `List`"
+    ],
+    "answer": 0,
+    "explanation": "После стирания обе сигнатуры — `process(List)`. JLS запрещает в одном типе два метода с одинаковым именем и одинаковым стиранием сигнатур, если ни одна не является подсигнатурой другой (name clash: same erasure).\nЗдесь и дескрипторы в байткоде совпали бы полностью — `(Ljava/util/List;)V`. Но JLS запрещает такую пару даже при разных типах возврата (когда дескрипторы различались бы). Решение — разные имена методов.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.3 Requirements in Overriding and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.3"
+      },
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-generic-array-01",
+    "num": "9.9",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему нельзя написать `new T[n]` или `new List<String>[10]`, а `new List<?>[10]` можно?",
+    "answer_text": "Массивы ковариантны и реифицированы: массив знает тип своего компонента и при записи проверяет его (`ArrayStoreException`). Дженерики стираются: `List<String>` в рантайме — просто `List`, проверить запись в `List<String>[]` нельзя.\n\nЕсли бы создание было разрешено, через `Object[] arr = lists; arr[0] = List.of(42);` в массив «строковых» списков молча попал бы чужой список — heap pollution без единого предупреждения. Поэтому JLS разрешает создавать массивы только реифицируемых типов. `List<?>` реифицируем: unbounded wildcard ничего не обещает. `T` в рантайме неизвестен вовсе.\n\nОбходы: `(T[]) new Object[n]` (unchecked, наружу не отдавать), `Array.newInstance(clazz, n)`, `List<T>` вместо массива.",
+    "explanation": "Ключевое: массивы реифицированы и проверяют запись в рантайме, а дженерики стёрты — проверить нечем.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §15.10.1 Array Creation Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.10.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-bridge-01",
+    "num": "9.10",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static final class Money implements Comparable<Money> {",
+        "        final long cents;",
+        "        Money(long cents) { this.cents = cents; }",
+        "        public int compareTo(Money o) { return Long.compare(cents, o.cents); }",
+        "    }",
+        "",
+        "    @SuppressWarnings({\"rawtypes\", \"unchecked\"})",
+        "    public static void main(String[] args) {",
+        "        long n = Arrays.stream(Money.class.getDeclaredMethods())",
+        "                .filter(m -> m.getName().equals(\"compareTo\")).count();",
+        "        System.out.println(n);",
+        "        Comparable raw = new Money(1);",
+        "        raw.compareTo(\"1\");",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Напечатает `2`, затем `ClassCastException`",
+      "Напечатает `1`, затем `ClassCastException`",
+      "Напечатает `1`, затем `compareTo` вернёт ненулевое число",
+      "Не скомпилируется: `compareTo(String)` не подходит"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2",
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "После стирания `Comparable.compareTo` принимает `Object`, а в `Money` объявлен `compareTo(Money)`. Чтобы переопределение работало, javac генерирует синтетический bridge-метод `compareTo(Object)`, который приводит аргумент к `Money` и вызывает настоящий метод — отсюда два метода в рефлексии.\nВызов через raw-тип попадает в bridge, и приведение `String` к `Money` бросает `ClassCastException`. При обходе методов рефлексией bridge-методы отфильтровывают через `Method.isBridge()`.",
+    "sources": [
+      {
+        "title": "JLS §15.12.4.5 Create Frame, Synchronize, Transfer Control",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.4.5"
+      },
+      {
+        "title": "Javadoc: Method.isBridge",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Method.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-generics-instanceof-01",
+    "num": "9.11",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`o` имеет тип `Object`, `T` — параметр типа метода. Что из этого компилируется в Java 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "if (o instanceof List<String> l) { }   // (1)",
+        "if (o instanceof List<?> l) { }        // (2)",
+        "T t = new T();                          // (3)",
+        "Class<T> k = T.class;                   // (4)"
+      ]
+    },
+    "options": [
+      "Только (2)",
+      "(1) и (2)",
+      "(2) и (4)",
+      "Все, кроме (3)"
+    ],
+    "answer": 0,
+    "explanation": "Аргументы типа стираются, в рантайме `List<String>` неотличим от `List<Integer>`. Поэтому `instanceof` с конкретным параметризованным типом разрешён, только если проверка безопасна статически (например, выражение уже `Collection<String>`); из `Object` — ошибка. `List<?>` — reifiable-тип, проверка возможна.\n`new T()` и `T.class` невозможны по той же причине: `T` в рантайме нет. Обходной путь — передать `Class<T>` или `Supplier<T>` параметром.",
+    "sources": [
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-class-erasure-01",
+    "num": "9.12",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`o` объявлена как `Object`. Что из этого компилируется в Java 21?",
+    "options": [
+      "`Class<?> c = List<String>.class;`",
+      "`boolean b = o instanceof List<String>;`",
+      "`boolean b = o instanceof List<?>;`",
+      "`Class<List<String>> c = List.class;`"
+    ],
+    "answer": 2,
+    "explanation": "Объект `Class` один на `List` — для `List<String>` отдельного нет, поэтому литерала `List<String>.class` синтаксически не существует, а `List.class` имеет тип `Class<List>`, который не присваивается в `Class<List<String>>`.\n`instanceof` с непроверяемым в рантайме типом допустим только если приведение безопасно: из `Object` в `List<String>` — нет (`cannot be safely cast`). `List<?>` — reifiable, можно. С Java 16 `c instanceof List<String>` компилируется, если `c` — `Collection<String>`.",
+    "sources": [
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-generics-type-token-recall-01",
+    "num": "9.13",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "recall",
+    "level": "senior",
+    "question": "Типы-аргументы стираются. Как тогда Jackson (`TypeReference`) и Spring (`ParameterizedTypeReference`) узнают, что нужен именно `List<User>`?",
+    "answer_text": "- В рантайме объект `ArrayList<User>` ничего не знает про `User`, а вот **объявления** сохраняют параметризованные типы в атрибуте `Signature` class-файла: суперкласс, интерфейсы, типы полей, параметры и возврат методов.\n- `new TypeReference<List<User>>() {}` — это анонимный **подкласс**, в объявлении которого суперкласс записан как `TypeReference<List<User>>`. `getClass().getGenericSuperclass()` возвращает `ParameterizedType`, из него достают `List<User>`.\n- Поэтому важны фигурные скобки `{}`: без подкласса информации нет. Тот же приём называют super type token (Gafter).\n- Альтернатива без подклассов — передавать `Class<T>` или фабрику, но для вложенных параметризованных типов `Class` недостаточно.",
+    "explanation": "Ключ: стираются типы переменных и объектов, но не объявления классов, полей и методов.",
+    "sources": [
+      {
+        "title": "Javadoc: Class.getGenericSuperclass",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JVMS §4.7.9 The Signature Attribute",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-4.html#jvms-4.7.9"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-class-type-token-01",
+    "num": "9.14",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Нужно отобрать из `List<?>` элементы типа `T`. Какая реализация компилируется и работает правильно?",
+    "options": [
+      "`<T> List<T> pick(List<?> src)` с проверкой `if (o instanceof T) r.add((T) o);`",
+      "`<T> List<T> pick(List<?> src)` с `try { r.add((T) o); } catch (ClassCastException e) {}`",
+      "`<T> List<T> pick(List<?> src, Class<T> type)` с `if (type.isInstance(o)) r.add(type.cast(o));`",
+      "`<T> List<T> pick(List<?> src)` с `if (T.class.isInstance(o)) r.add((T) o);`"
+    ],
+    "answer": 2,
+    "explanation": "`T` стирается: в рантайме его нет, поэтому `o instanceof T` (`Object cannot be safely cast to T`) и `T.class` (`cannot select from a type variable`) не компилируются. Объект `Class<T>` — обычное значение, он доживает до рантайма, и через него работают `isInstance`, `cast`, `isAssignableFrom`.\nВариант с `catch` компилируется (с `unchecked`), но приведение `(T)` после стирания ничего не проверяет: исключения не будет, в список попадёт всё подряд, а `ClassCastException` вылетит позже у вызывающего.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.20.2 The instanceof Operator",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.20.2"
+      },
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-token-needed-01",
+    "num": "9.15",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В каком методе параметр `Class<T>` действительно нужен?",
+    "options": [
+      "`<T> T first(List<T> list, Class<T> type)`",
+      "`<T> void swap(T[] arr, int i, int j, Class<T> type)`",
+      "`<T> boolean same(T a, T b, Class<T> type)`",
+      "`<T> T fromJson(String json, Class<T> type)`"
+    ],
+    "answer": 3,
+    "explanation": "`Class<T>` нужен, когда внутри метода тип надо знать **в рантайме**: создать объект, проверить, привести. Парсер должен понять, объект какого класса строить из JSON, а взять это из `T` нельзя — он стёрт (так устроен `ObjectMapper.readValue(json, Dog.class)`).\nВ остальных методах с объектами типа `T` работают как с непрозрачными значениями: тип нужен только компилятору, и хватает `T`. Лишний `Class<T>` только загромождает вызов.",
+    "sources": [
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-new-instance-01",
+    "num": "9.16",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Как создать объект типа `T` внутри generic-метода в Java 21?",
+    "options": [
+      "`return new T();`",
+      "`return T.class.getDeclaredConstructor().newInstance();`",
+      "Принять параметр `Class<T> type` и вызвать `type.getDeclaredConstructor().newInstance()`",
+      "`return (T) new Object();` — приведение проверится при вызове метода"
+    ],
+    "answer": 2,
+    "explanation": "`T` стёрт, поэтому ни `new T()`, ни `T.class` не компилируются — тип надо передать объектом `Class<T>`. `getDeclaredConstructor().newInstance()` бросает checked `ReflectiveOperationException` и заворачивает исключения конструктора в `InvocationTargetException`.\n`type.newInstance()` тоже работает, но устарел с Java 9: он пробрасывает checked-исключения конструктора в обход проверки компилятора. `(T) new Object()` компилируется, но вернёт `Object`, и `ClassCastException` вылетит у вызывающего.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Class",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Class.html"
+      },
+      {
+        "title": "JLS §15.8.2 Class Literals",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.8.2"
+      },
+      {
+        "title": "JLS §15.9.1 Determining the Class being Instantiated",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-generics-heap-pollution-01",
+    "num": "9.17",
+    "block": "java-generics",
+    "topic": "Heap pollution и varargs",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> strings = new ArrayList<>();",
+        "List raw = strings;",
+        "raw.add(42);",
+        "System.out.println(strings.size());",
+        "String s = strings.get(0);"
+      ]
+    },
+    "options": [
+      "1, затем ClassCastException",
+      "ClassCastException на raw.add(42)",
+      "1, и программа завершится без ошибок",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1",
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "Из-за стирания `ArrayList` в рантайме хранит `Object[]` и ничего не знает о `String`: через raw-тип `add(42)` проходит (с unchecked-предупреждением).\nПроверку типа компилятор вставляет в месте использования — `checkcast String` при присваивании результата `get(0)`. Там и падает CCE, далеко от места «отравления». Это heap pollution. Найти виновника помогает `Collections.checkedList`: он бросит исключение сразу при вставке.",
+    "sources": [
+      {
+        "title": "JLS §4.12.2 Variables of Reference Type (heap pollution)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.2"
+      },
+      {
+        "title": "Javadoc: Collections.checkedList",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-generics-safevarargs-01",
+    "num": "9.18",
+    "block": "java-generics",
+    "topic": "Heap pollution и varargs",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что верно про `@SafeVarargs`?",
+    "options": [
+      "Ставится только на методы, которые нельзя переопределить (`static`, `final`, `private`), и на конструкторы; это обещание автора, что метод не пишет в массив varargs чужие типы и не отдаёт его наружу",
+      "Заставляет компилятор проверять типы элементов varargs-массива в рантайме",
+      "Ставится на любой метод с generic-varargs и убирает предупреждение и у вызывающих, и у наследников",
+      "Делает varargs-массив неизменяемым"
+    ],
+    "answer": 0,
+    "explanation": "Массив для `T...` создаётся как `Object[]` или массив стёртого типа — это потенциальное загрязнение кучи, и javac предупреждает и в объявлении, и в местах вызова. `@SafeVarargs` подавляет предупреждения, но ничего не проверяет: это контракт автора.\nРазрешена только там, где метод нельзя переопределить (иначе наследник нарушил бы обещание): `static`, `final`, `private` (с Java 9) методы и конструкторы. Пример честного метода — `List.of(E...)`.",
+    "sources": [
+      {
+        "title": "JLS §9.6.4.7 @SafeVarargs",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.6.4.7"
+      },
+      {
+        "title": "Javadoc: SafeVarargs",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/SafeVarargs.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  }
+]

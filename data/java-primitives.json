@@ -1,0 +1,621 @@
+[
+  {
+    "id": "java-core-primitives-sizes-01",
+    "num": "1.1",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "recall",
+    "level": "middle",
+    "question": "Назови все 8 примитивов Java: сколько бит занимает каждый, знаковый ли он и какой у него диапазон. Сколько занимает `boolean`?",
+    "answer_text": "Целые, знаковые, в дополнительном коде:\n- `byte` — 8 бит, −128..127\n- `short` — 16 бит, −32 768..32 767\n- `int` — 32 бита, ≈ ±2,1 млрд (−2³¹..2³¹−1)\n- `long` — 64 бита, −2⁶³..2⁶³−1\n\n`char` — 16 бит, **беззнаковый**, 0..65 535: это единица UTF-16, а не «символ». Символы за пределами BMP (например, эмодзи) занимают два `char`.\n\nЧисла с плавающей точкой по IEEE 754: `float` — 32 бита (≈ 7 значащих цифр), `double` — 64 бита (≈ 15–16 цифр).\n\n`boolean` — размер **не задан** ни в JLS, ни в JVMS. Отдельной инструкции байткода для него нет: в выражениях и локальных переменных он работает как `int`. Массив `boolean[]` в HotSpot хранится как `byte[]`, по байту на элемент. Поле объекта обычно занимает 1 байт, но это деталь реализации.\n\nРазмеры фиксированы и не зависят от платформы, в отличие от C. Их можно получить в коде: `Integer.SIZE` (биты) и `Integer.BYTES` (байты).",
+    "explanation": "Размеры целых и плавающих типов фиксированы в JLS §4.2. `char` — единственный беззнаковый тип. У `boolean` размера в спецификации нет: в JVM он представлен как `int`, а массивы — как `byte[]` (JVMS §2.3.4).",
+    "sources": [
+      {
+        "title": "JLS §4.2 Primitive Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2"
+      },
+      {
+        "title": "JVMS §2.3.4 The boolean Type",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html#jvms-2.3.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "claude",
+      "at": "2026-11-14"
+    }
+  },
+  {
+    "id": "java-core-prim-compound-assign-01",
+    "num": "1.2",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие строки не скомпилируются?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "byte b = 10;",
+        "b += 300;          // (1)",
+        "b = b + 1;         // (2)",
+        "b++;               // (3)",
+        "char c = 'a' + 1;  // (4)"
+      ]
+    },
+    "options": [
+      "Только (2)",
+      "(1) и (2)",
+      "(2) и (4)",
+      "(1), (2) и (4)"
+    ],
+    "answer": 0,
+    "explanation": "`b + 1` имеет тип `int`, и присвоить его `byte` без приведения нельзя — ошибка в (2).\nСоставное присваивание `E1 op= E2` означает `E1 = (T)(E1 op E2)` со скрытым сужающим приведением, поэтому (1) компилируется — и молча переполняется: `(byte) 310 == 54`. `b++` тоже с неявным приведением.\n(4) — константное выражение (98), которое помещается в `char`, а для констант сужение в присваивании разрешено.",
+    "sources": [
+      {
+        "title": "JLS §15.26.2 Compound Assignment Operators",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.26.2"
+      },
+      {
+        "title": "JLS §5.2 Assignment Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-char-concat-01",
+    "num": "1.3",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println('a' + 'b' + \"c\");",
+        "System.out.println(\"c\" + 'a' + 'b');"
+      ]
+    },
+    "options": [
+      "195c\ncab",
+      "abc\ncab",
+      "abc\nc195",
+      "195c\nc195"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "195c\ncab"
+    },
+    "explanation": "`+` вычисляется слева направо. `'a' + 'b'` — сложение двух `char`, они расширяются до `int`: 97 + 98 = 195, потом конкатенация с `\"c\"`.\nВо второй строке первым идёт `String`, поэтому каждый следующий `+` — конкатенация и `char` добавляется как символ.",
+    "sources": [
+      {
+        "title": "JLS §15.18.1 String Concatenation Operator +",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-remainder-01",
+    "num": "1.4",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(-7 / 2 + \" \" + -7 % 2 + \" \" + Math.floorMod(-7, 2));"
+      ]
+    },
+    "options": [
+      "-3 -1 1",
+      "-4 1 1",
+      "-3 1 1",
+      "-4 -1 -1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-3 -1 1"
+    },
+    "explanation": "Целочисленное деление в Java округляет к нулю (`-3`), а знак остатка совпадает со знаком делимого (`-1`). `Math.floorMod` берёт знак делителя.\nОтсюда баги: `x % 2 == 1` не находит отрицательные нечётные, `hash % n` даёт отрицательный индекс шарда. Для индексов — `Math.floorMod(hash, n)`.",
+    "sources": [
+      {
+        "title": "JLS §15.17.3 Remainder Operator %",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3"
+      },
+      {
+        "title": "JLS §15.17.2 Division Operator /",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.2"
+      },
+      {
+        "title": "Javadoc: Math.floorMod",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-abs-min-01",
+    "num": "1.5",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код? (`hashCode()` этой строки равен `Integer.MIN_VALUE`)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int hash = \"polygenelubricants\".hashCode();",
+        "int shard = Math.abs(hash) % 3;",
+        "System.out.println(Math.abs(hash) + \" \" + shard);"
+      ]
+    },
+    "options": [
+      "-2147483648 -2",
+      "2147483648 2",
+      "2147483647 1",
+      "ArithmeticException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-2147483648 -2"
+    },
+    "explanation": "`Math.abs(Integer.MIN_VALUE)` возвращает сам `MIN_VALUE`: положительного 2³¹ в `int` нет. Остаток от отрицательного числа отрицателен, и шард получается `-2` → `ArrayIndexOutOfBoundsException` где-то дальше, раз на 4 миллиарда хешей.\nПравильно: `Math.floorMod(hash, n)` или `(hash & 0x7fffffff) % n`. `Math.absExact` (Java 15+) в таком случае бросит `ArithmeticException`.",
+    "sources": [
+      {
+        "title": "Javadoc: Math.abs / Math.absExact / Math.floorMod",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      },
+      {
+        "title": "JLS §15.17.3 Remainder Operator %",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-int-overflow-01",
+    "num": "1.6",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "long monthMs = 30 * 24 * 60 * 60 * 1000;",
+        "System.out.println(monthMs);"
+      ]
+    },
+    "options": [
+      "-1702967296",
+      "2592000000",
+      "Не скомпилируется: константа не помещается в int",
+      "ArithmeticException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-1702967296"
+    },
+    "explanation": "Все множители — `int`, поэтому произведение считается в `int` и переполняется (2 592 000 000 > 2³¹−1), а в `long` расширяется уже испорченное значение. Переполнение `int` не ошибка ни в рантайме, ни при свёртке констант компилятором.\nФикс: `30L * 24 * …`, `Duration.ofDays(30).toMillis()` или `Math.multiplyExact`, который бросит `ArithmeticException`.",
+    "sources": [
+      {
+        "title": "JLS §15.17.1 Multiplication Operator *",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.1"
+      },
+      {
+        "title": "JLS §5.1.2 Widening Primitive Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.2"
+      },
+      {
+        "title": "Javadoc: Math.multiplyExact",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-prim-switch-fallthrough-01",
+    "num": "1.7",
+    "block": "java-primitives",
+    "topic": "Примитивы и операторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int code = 2;",
+        "String r = \"\";",
+        "switch (code) {",
+        "    case 1: r += \"one \";",
+        "    case 2: r += \"two \";",
+        "    case 3: r += \"three \";",
+        "        break;",
+        "    default: r += \"other\";",
+        "}",
+        "System.out.println(r.trim());"
+      ]
+    },
+    "options": [
+      "two three",
+      "two",
+      "two three other",
+      "one two three"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "two three"
+    },
+    "explanation": "В switch со старыми метками `case …:` выполнение «проваливается» в следующие ветки до `break`. Начали с `case 2`, выполнили `case 3`, остановились на `break`.\nСтрелочная форма `case 2 -> …` (Java 14+) не проваливается — в новом коде лучше она. `javac -Xlint:fallthrough` предупреждает о проваливании.",
+    "sources": [
+      {
+        "title": "JLS §14.11.3 Execution of a switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11.3"
+      },
+      {
+        "title": "JLS §14.11 The switch Statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.11"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-sum-01",
+    "num": "1.8",
+    "block": "java-primitives",
+    "topic": "double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "double a = 0.1 + 0.2;",
+        "System.out.println(a + \" \" + (a == 0.3));"
+      ]
+    },
+    "options": [
+      "0.30000000000000004 false",
+      "0.3 true",
+      "0.3 false",
+      "0.30000000000000004 true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "0.30000000000000004 false"
+    },
+    "explanation": "`0.1`, `0.2` и `0.3` не представимы точно в двоичной плавающей точке (IEEE 754), их ближайшие `double` в сумме дают не тот `double`, что ближайший к `0.3`. `Double.toString` печатает столько цифр, сколько нужно, чтобы однозначно восстановить значение.\nСравнивать `double` — с допуском (`Math.abs(a - b) < eps`), деньги — не в `double`.",
+    "sources": [
+      {
+        "title": "JLS §4.2.3 Floating-Point Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.3"
+      },
+      {
+        "title": "JLS §4.2.4 Floating-Point Operations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-nan-negzero-01",
+    "num": "1.9",
+    "block": "java-primitives",
+    "topic": "double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "double nan = Double.NaN;",
+        "System.out.println((nan == nan) + \" \" + Double.valueOf(nan).equals(nan));",
+        "System.out.println((0.0 == -0.0) + \" \" + Double.valueOf(0.0).equals(-0.0));"
+      ]
+    },
+    "options": [
+      "false true\ntrue false",
+      "false false\ntrue true",
+      "true true\ntrue false",
+      "false true\ntrue true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true\ntrue false"
+    },
+    "explanation": "`==` следует IEEE 754: `NaN` не равен ничему, даже себе, а `0.0 == -0.0`. `Double.equals` и `Double.compare` сравнивают битовое представление: `NaN` равен `NaN`, а `0.0` и `-0.0` различны.\nПоэтому `HashSet<Double>` находит `NaN`, а сортировка `double[]` ставит `-0.0` перед `0.0`. В своих `equals` для `double`-полей — `Double.compare`, а не `==`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "Javadoc: Double.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-bigdecimal-double-ctor-01",
+    "num": "1.10",
+    "block": "java-primitives",
+    "topic": "double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var exact = new BigDecimal(\"0.1\");",
+        "System.out.println(new BigDecimal(0.1).equals(exact) + \" \" + BigDecimal.valueOf(0.1).equals(exact));"
+      ]
+    },
+    "options": [
+      "false true",
+      "true true",
+      "false false",
+      "true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "`new BigDecimal(0.1)` берёт точное двоичное значение `double`: 0.1000000000000000055511151231257827… `BigDecimal.valueOf(double)` идёт через `Double.toString` и даёт ровно `0.1`.\nДеньги создают из строки или `valueOf`/`long`, но не конструктором от `double`. Ещё одна ловушка: `equals` учитывает масштаб (`0.1` ≠ `0.10`), сравнивать по значению — `compareTo`.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal(double), BigDecimal.valueOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-bigdecimal-divide-01",
+    "num": "1.11",
+    "block": "java-primitives",
+    "topic": "double и BigDecimal",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var total = new BigDecimal(\"100\");",
+        "var parts = new BigDecimal(\"3\");",
+        "System.out.println(total.divide(parts));"
+      ]
+    },
+    "options": [
+      "ArithmeticException",
+      "33.33333333333333",
+      "33",
+      "33.33"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.ArithmeticException"
+    },
+    "explanation": "`divide(BigDecimal)` без масштаба и режима округления требует точного результата. 100/3 — бесконечная дробь: «Non-terminating decimal expansion; no exact representable decimal result».\nНужно явно: `divide(parts, 2, RoundingMode.HALF_EVEN)` или `divide(parts, MathContext.DECIMAL64)`. Так же `setScale(2)` без `RoundingMode` бросит, если приходится округлять.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal.divide",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: RoundingMode",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/RoundingMode.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-fp-money-recall-01",
+    "num": "1.12",
+    "block": "java-primitives",
+    "topic": "double и BigDecimal",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему деньги не хранят в `double` и как делать правильно?",
+    "answer_text": "- `double` — двоичная плавающая точка: `0.1` хранится приближённо, суммы копят ошибку, `0.1 + 0.2 != 0.3`. Для отчётов и сверок это расхождения на копейки.\n- **`BigDecimal`**: создавать из строки или `BigDecimal.valueOf`, не `new BigDecimal(double)`. Масштаб и `RoundingMode` задавать явно (`HALF_EVEN` — банковское, `HALF_UP` — «школьное», выбирает бизнес). Сравнивать через `compareTo`, не `equals` (масштаб).\n- **`long` в минорных единицах** (копейки): быстро и просто, но число знаков зависит от валюты (JPY — 0, BHD — 3, см. `Currency.getDefaultFractionDigits`), а умножение на курс или процент всё равно требует правила округления.\n- В БД — `NUMERIC(p, s)`, не `float`/`double precision`. Сумму хранят вместе с валютой.",
+    "explanation": "Основное: двоичная дробь не представляет точно `0.1`, ошибки накапливаются и вылезают при округлении и сравнении.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: Currency.getDefaultFractionDigits",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Currency.html"
+      },
+      {
+        "title": "JLS §4.2.3 Floating-Point Types and Values",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-eq-widening-float-01",
+    "num": "1.13",
+    "block": "java-primitives",
+    "topic": "Сравнение чисел",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int a = 16_777_217;",
+        "float f = a;",
+        "System.out.println((a == f) + \" \" + (a == (int) f));"
+      ]
+    },
+    "options": [
+      "true false",
+      "false false",
+      "true true",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "При `int == float` операнды приводятся к общему типу `float` (binary numeric promotion). `16 777 217` = 2²⁴+1 в `float` не помещается (24 бита мантиссы) и округляется до `16 777 216` — и у `f`, и у `a` при сравнении. Поэтому `a == f` — `true`, хотя значения разные.\n`(int) f` возвращает округлённое `16 777 216`, и сравнение уже честное — `false`. То же с `long` и `double` за пределами 2⁵³.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      },
+      {
+        "title": "JLS §5.1.2 Widening Primitive Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-double-compare-01",
+    "num": "1.14",
+    "block": "java-primitives",
+    "topic": "Сравнение чисел",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`double s = 0.1 + 0.2;` Как проверить, что `s` «равно» `0.3`?",
+    "options": [
+      "`Double.compare(s, 0.3) == 0`",
+      "`Math.abs(s - 0.3) < 1e-9` — сравнение с допуском",
+      "`Double.valueOf(s).equals(0.3)`",
+      "Пометить метод `strictfp` и сравнить `s == 0.3`"
+    ],
+    "answer": 1,
+    "explanation": "`0.1 + 0.2` в `double` даёт `0.30000000000000004`, и любое **точное** сравнение вернёт `false`. `Double.compare` и `Double.equals` тоже точные — они только иначе обрабатывают `NaN` и `-0.0`. Помогает допуск, подобранный под масштаб величин (или `BigDecimal`, если нужна точная десятичная арифметика).\n`strictfp` с Java 17 ничего не меняет (JEP 306: вся арифметика и так строгая IEEE 754), а `0.3` всё равно не представимо точно.",
+    "sources": [
+      {
+        "title": "Javadoc: Double",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html"
+      },
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JEP 306: Restore Always-Strict Floating-Point Semantics",
+        "url": "https://openjdk.org/jeps/306"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-char-int-01",
+    "num": "1.15",
+    "block": "java-primitives",
+    "topic": "Сравнение чисел",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "char c = 'A';",
+        "System.out.println((c == 65) + \" \" + (c + 1) + \" \" + (char) (c + 1));"
+      ]
+    },
+    "options": [
+      "true 66 B",
+      "true B B",
+      "false 66 B",
+      "true A1 B"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true 66 B"
+    },
+    "explanation": "`char` — числовой тип (код UTF-16). В `c == 65` он расширяется до `int`: `'A'` = 65 → `true`. `c + 1` — тоже арифметика `int` → `66`. Чтобы получить символ, нужен явный каст `(char) (c + 1)` → `B`.\nСтрокой `A1` было бы `\"\" + c + 1`: там `+` — конкатенация слева направо.",
+    "sources": [
+      {
+        "title": "JLS §15.21.1 Numerical Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.1"
+      },
+      {
+        "title": "JLS §5.6 Numeric Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.6"
+      },
+      {
+        "title": "JLS §15.18 Additive Operators",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  }
+]

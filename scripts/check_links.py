@@ -3,7 +3,7 @@
 
 Запуск:
     python3 scripts/check_links.py              # все блоки
-    python3 scripts/check_links.py java-core    # один блок
+    python3 scripts/check_links.py java-boxing  # один блок
 Только stdlib, нужна сеть.
 """
 import concurrent.futures as cf

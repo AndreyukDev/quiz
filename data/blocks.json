@@ -1,6 +1,14 @@
 [
-  {"id": "java-core", "title": "Java: язык", "icon": "☕", "order": 1},
-  {"id": "java-collections", "title": "Коллекции", "icon": "🗂️", "order": 2},
-  {"id": "java-streams", "title": "Stream API и лямбды", "icon": "🌊", "order": 3},
-  {"id": "java-modern", "title": "Современная Java", "icon": "✨", "order": 4}
+  {"id": "java-primitives", "title": "Примитивы и числа", "icon": "🔢", "order": 1},
+  {"id": "java-boxing", "title": "Автоупаковка", "icon": "📦", "order": 2},
+  {"id": "java-strings", "title": "Строки", "icon": "🔤", "order": 3},
+  {"id": "java-equals", "title": "==, equals и hashCode", "icon": "⚖️", "order": 4},
+  {"id": "java-oop", "title": "Классы и наследование", "icon": "🧬", "order": 5},
+  {"id": "java-enum", "title": "Enum", "icon": "🏷️", "order": 6},
+  {"id": "java-exceptions", "title": "Исключения", "icon": "⚠️", "order": 7},
+  {"id": "java-class", "title": "Class и instanceof", "icon": "🔍", "order": 8},
+  {"id": "java-generics", "title": "Generics", "icon": "🧩", "order": 9},
+  {"id": "java-collections", "title": "Коллекции", "icon": "🗂️", "order": 10},
+  {"id": "java-streams", "title": "Stream API и лямбды", "icon": "🌊", "order": 11},
+  {"id": "java-modern", "title": "Современная Java", "icon": "✨", "order": 12}
 ]

@@ -1,0 +1,789 @@
+[
+  {
+    "id": "java-core-class-equals-contract-01",
+    "num": "4.1",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Что **не** входит в контракт `Object.equals`?",
+    "options": [
+      "Рефлексивность: `x.equals(x)` — `true`",
+      "Симметричность: `x.equals(y)` тогда и только тогда, когда `y.equals(x)`",
+      "Объекты с одинаковым `hashCode()` обязаны быть равны по `equals`",
+      "`x.equals(null)` — `false` для любого не-`null` `x`"
+    ],
+    "answer": 2,
+    "explanation": "Контракт `equals`: рефлексивность, симметричность, транзитивность, согласованность и `x.equals(null) == false`. Требование к хешу обратное: **равные** объекты обязаны иметь равные `hashCode()`. Одинаковый хеш у неравных объектов — коллизия, это нормально.\nШаблон: `this == o` → `if (!(o instanceof Dog other)) return false` → сравнение полей. `instanceof` заодно отсекает `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-cast-01",
+    "num": "4.2",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Dog {",
+        "        final String name;",
+        "        Dog(String name) { this.name = name; }",
+        "",
+        "        @Override public boolean equals(Object o) {",
+        "            Dog d = (Dog) o;",
+        "            return name.equals(d.name);",
+        "        }",
+        "        @Override public int hashCode() { return name.hashCode(); }",
+        "    }",
+        "",
+        "    static String test(Dog dog, Object o) {",
+        "        try { return String.valueOf(dog.equals(o)); }",
+        "        catch (RuntimeException e) { return e.getClass().getSimpleName(); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Dog rex = new Dog(\"Rex\");",
+        "        System.out.println(test(rex, \"x\") + \" \" + test(rex, null));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "ClassCastException NullPointerException",
+      "ClassCastException ClassCastException",
+      "false false",
+      "false NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "ClassCastException NullPointerException"
+    },
+    "explanation": "Приведение без проверки: `(Dog) \"x\"` бросает `ClassCastException`. А `(Dog) null` проходит — `null` приводится к любому ссылочному типу, и NPE вылетает уже на `d.name`. Обе ветки нарушают контракт: `equals` с чужим типом или `null` должен вернуть `false`.\nПравильно: `if (!(o instanceof Dog d)) return false;` до любого обращения к полям.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-symmetry-01",
+    "num": "4.3",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Point {",
+        "        final int x, y;",
+        "        Point(int x, int y) { this.x = x; this.y = y; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof Point p && x == p.x && y == p.y;",
+        "        }",
+        "        @Override public int hashCode() { return 31 * x + y; }",
+        "    }",
+        "",
+        "    static class ColorPoint extends Point {",
+        "        final String color;",
+        "        ColorPoint(int x, int y, String color) { super(x, y); this.color = color; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof ColorPoint cp && super.equals(cp) && color.equals(cp.color);",
+        "        }",
+        "        @Override public int hashCode() { return 31 * super.hashCode() + color.hashCode(); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Point p = new Point(1, 2);",
+        "        Point cp = new ColorPoint(1, 2, \"red\");",
+        "        System.out.println(p.equals(cp) + \" \" + cp.equals(p));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "`Point.equals` через `instanceof` пускает наследника и сравнивает только `x, y` → `true`. `ColorPoint.equals` требует `ColorPoint` → `false`. Симметричность нарушена: `List.of(cp).contains(p)` — `true`, а `List.of(p).contains(cp)` — `false`. Заодно сломан контракт `hashCode`: `p.equals(cp)`, а хеши разные.\n`instanceof` в `equals` корректен, если наследники не добавляют значимых полей (надёжнее — `final` класс или `final equals`). `getClass() != o.getClass()` сохраняет симметричность, но наследник больше не равен родителю и ломается на прокси. Обычно лучше композиция: `ColorPoint` содержит `Point`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-class-equals-no-hashcode-01",
+    "num": "4.4",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа? (`hashCode` не переопределён)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Dog {",
+        "        final String name;",
+        "        Dog(String name) { this.name = name; }",
+        "        @Override public boolean equals(Object o) {",
+        "            return o instanceof Dog d && name.equals(d.name);",
+        "        }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Set<Dog> dogs = new HashSet<>();",
+        "        dogs.add(new Dog(\"Rex\"));",
+        "        dogs.add(new Dog(\"Rex\"));",
+        "        System.out.println(dogs.size() + \" \" + dogs.contains(new Dog(\"Rex\")));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "1 true",
+      "2 false",
+      "2 true",
+      "1 false"
+    ],
+    "answer": 1,
+    "expect": {
+      "stdout": "2 false"
+    },
+    "explanation": "`HashSet` сначала ищет по хешу, и только среди элементов с тем же хешем вызывает `equals`. Без переопределения `hashCode()` берётся identity-хеш, у двух разных объектов он практически всегда разный — до `equals` дело не доходит. Отсюда дубль в множестве и промах `contains`.\nПравило: переопределил `equals` — переопределяй `hashCode` по тем же полям. Проще всего — `record` или `Objects.hash(...)`.",
+    "sources": [
+      {
+        "title": "Javadoc: java.lang.Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "Javadoc: java.util.HashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-equals-without-hashcode-01",
+    "num": "4.5",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Класс переопределил `equals`, но не `hashCode`. Два объекта `a` и `b` равны по `equals`, `a` положили в `HashSet`. Что вернёт `set.contains(b)`?",
+    "options": [
+      "Почти наверняка `false`: identity-хеши `a` и `b` разные, до `equals` дело не дойдёт",
+      "`true`: `HashSet` в итоге сравнивает элементы через `equals`",
+      "`true`, если `a` и `b` случайно попали в один бакет: внутри бакета сравнение идёт через `equals`",
+      "Не скомпилируется: `equals` и `hashCode` переопределяются только парой"
+    ],
+    "answer": 0,
+    "explanation": "Контракт `Object.hashCode`: равные по `equals` объекты обязаны иметь равные хеши. `HashMap` (внутри `HashSet`) выбирает бакет по хешу и сравнивает сохранённые хеши, и лишь потом вызывает `equals`.\nДаже в одном бакете узел отсеется сравнением сохранённых хешей. Совпадение самих identity-хешей возможно, поэтому «почти наверняка», а не «всегда» — баг ещё и плавающий. Ни компилятор, ни рантайм контракт не проверяют.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.hashCode / equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "OpenJDK 21: HashMap.java",
+        "url": "https://github.com/openjdk/jdk21u/blob/master/src/java.base/share/classes/java/util/HashMap.java"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-overload-01",
+    "num": "4.6",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static final class Point {",
+        "        final int x, y;",
+        "        Point(int x, int y) { this.x = x; this.y = y; }",
+        "",
+        "        public boolean equals(Point o) { return o != null && x == o.x && y == o.y; }",
+        "        @Override public int hashCode() { return 31 * x + y; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        var p = new Point(1, 2);",
+        "        System.out.println(p.equals(new Point(1, 2)) + \" \" + List.of(p).contains(new Point(1, 2)));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "Не скомпилируется: equals должен принимать Object"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "`equals(Point)` — **перегрузка**, а не переопределение `equals(Object)`. Прямой вызов с аргументом типа `Point` выбирает её, а коллекции вызывают `equals(Object)` — унаследованный от `Object`, то есть сравнение ссылок.\n`@Override` на таком методе дал бы ошибку компиляции. Поэтому `equals` пишут с параметром `Object` и аннотацией, а ещё проще — `record`.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-equals-instanceof-getclass-01",
+    "num": "4.7",
+    "block": "java-equals",
+    "topic": "Контракт equals и hashCode",
+    "type": "recall",
+    "level": "senior",
+    "question": "`instanceof` или `getClass()` в `equals`: в чём компромисс и что ломается с наследниками?",
+    "answer_text": "`instanceof` допускает равенство с наследником. Если наследник добавил своё поле в `equals`, ломается симметрия (`base.equals(sub)` — true, `sub.equals(base)` — false) или транзитивность. Расширить инстанцируемый класс значимым полем и сохранить контракт `equals` в общем случае нельзя (Блох, Effective Java, Item 10).\n\n`getClass() != o.getClass()` контракт сохраняет, но ломает подстановку: прокси (Hibernate, Mockito) и безобидные наследники без новых полей перестают быть равными базовому классу.\n\nПрактика: value-классы делать `final` или `record` и использовать `instanceof`; для расширения — композиция вместо наследования; для JPA-сущностей помнить о прокси.",
+    "explanation": "Ключевое: наследник с новым значимым полем несовместим с контрактом `equals` (симметрия/транзитивность), а `getClass()` платит за это подстановкой Лисков и прокси.",
+    "sources": [
+      {
+        "title": "Javadoc: Object.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "J. Bloch, Effective Java, 3rd ed., Item 10 (доп.)",
+        "url": "https://www.oreilly.com/library/view/effective-java-3rd/9780134686097/"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-eq-related-types-01",
+    "num": "4.8",
+    "block": "java-equals",
+    "topic": "== для ссылок",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Animal {}",
+        "    static class Dog extends Animal {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        Animal a = new Dog();",
+        "        Dog d = new Dog();",
+        "        Dog d2 = (Dog) a;",
+        "        System.out.println((a == d) + \" \" + (a == d2));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "false true",
+      "false false",
+      "true true",
+      "Не скомпилируется: Animal и Dog нельзя сравнить через =="
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true"
+    },
+    "explanation": "Типы связаны наследованием, поэтому `==` компилируется. Сравниваются ссылки: `a` и `d` — разные объекты, хоть и одного класса без полей → `false`. Приведение `(Dog) a` объект не копирует, `d2` указывает туда же, куда `a` → `true`.\nДля сравнения по содержимому нужен `equals`.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-unrelated-types-01",
+    "num": "4.9",
+    "block": "java-equals",
+    "topic": "== для ссылок",
+    "type": "mcq",
+    "level": "middle",
+    "question": "Какое сравнение компилируется? (`Dog` и `Cat` — несвязанные классы)",
+    "options": [
+      "`Integer i; String s;` … `i == s`",
+      "`Long l; Integer i;` … `l == i`",
+      "`Dog d; Cat c;` … `d == c`",
+      "`Object o; String s;` … `o == s`"
+    ],
+    "answer": 3,
+    "explanation": "`==` между ссылками компилируется, только если один тип можно привести к другому. `Object` — супертип `String`, ссылка `o` вполне может указывать на ту же строку → компилируется.\nДва несвязанных **класса** (`Integer`/`String`, `Long`/`Integer`, `Dog`/`Cat`) не могут ссылаться на один объект — `incomparable types`. Если всё же нужно — сравнивать через `equals` или привести один операнд к общему типу.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.5 Casting Contexts",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-final-interface-01",
+    "num": "4.10",
+    "block": "java-equals",
+    "topic": "== для ссылок",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какая строка **не** скомпилируется? (`r` — `Runnable`)",
+    "options": [
+      "`ArrayList<String> list; … list == r`",
+      "`String s; … s == r`",
+      "`String s; … (Object) s == r`",
+      "`CharSequence cs; … cs == r`"
+    ],
+    "answer": 1,
+    "explanation": "Класс и интерфейс сравнимы, если у класса **может** существовать подкласс, реализующий интерфейс: `ArrayList` не `final` и не закрыт `sealed`, поэтому `list == r` компилируется. `String` — `final` и `Runnable` не реализует, такого объекта быть не может → `incomparable types`.\nДва несвязанных интерфейса (`CharSequence` и `Runnable`) обычно сравнимы — один объект может реализовать оба. Исключения: `sealed`-иерархии (Java 17+) и несовместимые параметризации (`List<String>` и `Collection<Integer>`). Каст к `Object` снимает проверку.",
+    "sources": [
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      },
+      {
+        "title": "JLS §5.1.6.1 Allowed Narrowing Reference Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.6.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-null-equals-01",
+    "num": "4.11",
+    "block": "java-equals",
+    "topic": "null-безопасное сравнение",
+    "type": "mcq",
+    "level": "middle",
+    "question": "`String s = null;` Какое выражение бросит `NullPointerException`?",
+    "options": [
+      "`\"PAID\".equals(s)`",
+      "`Objects.equals(s, \"PAID\")`",
+      "`s.equals(\"PAID\")`",
+      "`s == \"PAID\"`"
+    ],
+    "answer": 2,
+    "explanation": "Вызов метода на `null` — NPE, поэтому `s.equals(…)` падает. Литерал слева (`\"PAID\".equals(s)`) безопасен: контракт `equals` требует для `null` аргумента вернуть `false`. `Objects.equals` сам проверяет `null`, `==` с `null` просто сравнивает ссылки.\nС Java 15 (JEP 358, включено по умолчанию) в сообщении NPE видно, что именно было `null`; имя локальной переменной — только если код скомпилирован с `-g`.",
+    "sources": [
+      {
+        "title": "Javadoc: Object",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      },
+      {
+        "title": "Javadoc: Objects",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-objects-equals-01",
+    "num": "4.12",
+    "block": "java-equals",
+    "topic": "null-безопасное сравнение",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(Objects.equals(null, null) + \" \"",
+        "        + Objects.equals(1, 1L) + \" \"",
+        "        + Objects.equals(new int[]{1}, new int[]{1}));"
+      ]
+    },
+    "options": [
+      "true false false",
+      "true true false",
+      "true true true",
+      "false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "`Objects.equals(a, b)` = `a == b || (a != null && a.equals(b))`: два `null` → `true`. Но это всё тот же `equals`: `1` упаковывается в `Integer`, `1L` — в `Long`, `Integer.equals(Long)` → `false`. У массивов `equals` — сравнение ссылок → `false`.\nДля массивов — `Arrays.equals`/`Objects.deepEquals`; для чисел разных типов — сначала привести к одному типу.",
+    "sources": [
+      {
+        "title": "Javadoc: Objects",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      },
+      {
+        "title": "Javadoc: Integer",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-objects-arrays-equals-01",
+    "num": "4.13",
+    "block": "java-equals",
+    "topic": "Массивы и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[] a = {1, 2};",
+        "int[] b = {1, 2};",
+        "System.out.println(a.equals(b) + \" \" + Arrays.equals(a, b) + \" \"",
+        "        + Objects.equals(a, b) + \" \" + (Arrays.hashCode(a) == Arrays.hashCode(b)));"
+      ]
+    },
+    "options": [
+      "false true false true",
+      "true true true true",
+      "false true true true",
+      "false false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false true false true"
+    },
+    "explanation": "Массивы не переопределяют `equals` и `hashCode` — это методы `Object`, сравнение ссылок. `Objects.equals` лишь добавляет проверку на `null` и вызывает тот же `equals`. Сравнение по содержимому — `Arrays.equals`/`Arrays.hashCode` (для вложенных — `deepEquals`).\nОтсюда баги: массив как ключ `HashMap` или поле `record` (сгенерированный `equals` сравнит ссылки).",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "Javadoc: Objects.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-eq-arrays-deep-01",
+    "num": "4.14",
+    "block": "java-equals",
+    "topic": "Массивы и equals",
+    "type": "output",
+    "level": "middle",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[][] a = {{1, 2}};",
+        "int[][] b = {{1, 2}};",
+        "System.out.println((a == b) + \" \" + Arrays.equals(a, b) + \" \" + Arrays.deepEquals(a, b));"
+      ]
+    },
+    "options": [
+      "false false true",
+      "false true true",
+      "true true true",
+      "false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false false true"
+    },
+    "explanation": "`==` у массивов сравнивает ссылки → `false`. `Arrays.equals(Object[], Object[])` сравнивает элементы через `equals`, а элементы здесь — вложенные массивы `int[]`, у которых `equals` — сравнение ссылок → тоже `false`.\nДля многомерных нужен `Arrays.deepEquals` — он рекурсивно спускается во вложенные массивы → `true`. Аналогично `Arrays.deepToString` и `deepHashCode`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      },
+      {
+        "title": "JLS §15.21.3 Reference Equality Operators == and !=",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.21.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-eq-record-array-01",
+    "num": "4.15",
+    "block": "java-equals",
+    "topic": "Массивы и equals",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    record Tags(String[] values) {}",
+        "",
+        "    public static void main(String[] args) {",
+        "        var a = new Tags(new String[]{\"x\"});",
+        "        var b = new Tags(new String[]{\"x\"});",
+        "        System.out.println(a.equals(b) + \" \"",
+        "                + List.of(new int[]{1}).contains(new int[]{1}));",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "false false",
+      "true true",
+      "true false",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false false"
+    },
+    "explanation": "Сгенерированный `equals` record сравнивает ссылочные компоненты через `Objects.equals`, то есть через `equals` массива — а он не переопределён и сравнивает ссылки → `false`. `List.contains` тоже вызывает `equals` массива → `false`.\nВ record с массивом переопределяют `equals`/`hashCode`/`toString` через `Arrays.*` или хранят `List.copyOf(...)`. Плюс массив делает record изменяемым — нужна защитная копия.",
+    "sources": [
+      {
+        "title": "JLS §8.10.3 Record Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.10.3"
+      },
+      {
+        "title": "Javadoc: Record",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-12"
+    }
+  },
+  {
+    "id": "java-core-equals-compareto-consistency-01",
+    "num": "4.16",
+    "block": "java-equals",
+    "topic": "compareTo и компараторы",
+    "type": "tf",
+    "level": "senior",
+    "question": "Контракт `Comparable` требует: если `a.compareTo(b) == 0`, то `a.equals(b)` обязано быть `true`.",
+    "answer": false,
+    "explanation": "Javadoc: согласованность натурального порядка с `equals` «настоятельно рекомендуется, но не обязательна». Пример из JDK — `BigDecimal` (`1.0` и `1.00`).\nЦена несогласованности: `TreeSet`/`TreeMap` используют только `compareTo` и ведут себя «странно» относительно контрактов `Set`/`Map`, сформулированных через `equals`. Обязательны же антисимметричность знака, транзитивность и правило: из `x.compareTo(y) == 0` следует одинаковый знак сравнения `x` и `y` с любым `z`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-bigdecimal-sets-01",
+    "num": "4.17",
+    "block": "java-equals",
+    "topic": "compareTo и компараторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var a = new BigDecimal(\"1.0\");",
+        "var b = new BigDecimal(\"1.00\");",
+        "Set<BigDecimal> hash = new HashSet<>(List.of(a, b));",
+        "Set<BigDecimal> tree = new TreeSet<>(List.of(a, b));",
+        "System.out.println(hash.size() + \" \" + tree.size());"
+      ]
+    },
+    "options": [
+      "2 1",
+      "2 2",
+      "1 1",
+      "1 2"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2 1"
+    },
+    "explanation": "`BigDecimal.equals` учитывает масштаб: `1.0` и `1.00` не равны. `compareTo` сравнивает численно и возвращает 0.\n`HashSet` опирается на `equals`/`hashCode`, `TreeSet` — только на `compareTo` или компаратор. Это хрестоматийный пример натурального порядка, несогласованного с `equals`: `TreeSet` с такими элементами нарушает общий контракт `Set`, сформулированный через `equals`.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-subtraction-comparator-01",
+    "num": "4.18",
+    "block": "java-equals",
+    "topic": "compareTo и компараторы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Comparator<Integer> cmp = (a, b) -> a - b;",
+        "System.out.println(cmp.compare(Integer.MIN_VALUE, 1) > 0);"
+      ]
+    },
+    "options": [
+      "true",
+      "false",
+      "ArithmeticException: integer overflow",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true"
+    },
+    "explanation": "`Integer.MIN_VALUE - 1` переполняется в `Integer.MAX_VALUE`: целочисленная арифметика в Java молча заворачивается, исключения нет. Компаратор «через вычитание» решает, что минимальный `int` больше единицы, и сортировка ломается — вплоть до `IllegalArgumentException: Comparison method violates its general contract!` из TimSort.\nПравильно: `Integer.compare(a, b)`, `Comparator.naturalOrder()` или `Comparator.comparingInt(...)`.",
+    "sources": [
+      {
+        "title": "JLS §15.18.2 Additive Operators for Numeric Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18.2"
+      },
+      {
+        "title": "Javadoc: Integer.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-comparator-nulls-01",
+    "num": "4.19",
+    "block": "java-equals",
+    "topic": "compareTo и компараторы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "У части пользователей `getCity()` возвращает `null` (имя — всегда не `null`). Какой компаратор отсортирует по городу (`null` в конце), а внутри города — по имени, без NPE?",
+    "options": [
+      "`Comparator.comparing(User::getCity, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(User::getName)`",
+      "`Comparator.nullsLast(Comparator.comparing(User::getCity)).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).reversed().thenComparing(User::getName)`"
+    ],
+    "answer": 0,
+    "explanation": "`nullsLast` оборачивает компаратор и обрабатывает `null` **сравниваемых объектов**. В варианте `nullsLast(comparing(User::getCity))` сами `User` не null — null появляется уже внутри, при сравнении городов, и падает NPE. Правильно — передать null-безопасный компаратор вторым аргументом в `comparing`, чтобы он сравнивал извлечённые ключи.\nВарианты без `nullsLast` бросают NPE на первом же `null`-городе; `reversed()` этого не меняет.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.comparing / nullsLast",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  }
+]

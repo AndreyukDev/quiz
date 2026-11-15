@@ -1,0 +1,839 @@
+[
+  {
+    "id": "java-core-oop-ctor-overridable-01",
+    "num": "5.1",
+    "block": "java-oop",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Base {",
+        "    Base() { init(); }",
+        "    void init() {}",
+        "}",
+        "class Child extends Base {",
+        "    private final List<String> items = new ArrayList<>();",
+        "    @Override void init() { items.add(\"x\"); }",
+        "}",
+        "new Child();",
+        "System.out.println(\"ok\");"
+      ]
+    },
+    "options": [
+      "NullPointerException",
+      "ok",
+      "Не скомпилируется: final-поле используется до инициализации",
+      "ok, items содержит [x]"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Порядок создания `Child`: сначала конструктор `Base` (неявный `super()`), и только потом инициализаторы полей `Child`. `Base()` вызывает `init()`, а он виртуальный — выполняется `Child.init()`, когда `items` ещё `null`. Итог — NPE.\nОтсюда правило: не вызывать из конструктора переопределяемые методы (делать их `private`/`final` или выносить инициализацию в фабрику). Исключение-ловушка: у `final`-поля с константным инициализатором (`final String s = \"x\"`) компилятор подставляет значение в месте использования, поэтому `init()` видит `\"x\"`, хотя само поле ещё не присвоено.\nJava 25 (JEP 513, гибкие тела конструкторов): поле можно присвоить до `super()` — `Child() { items = new ArrayList<>(); super(); }` (без инициализатора в объявлении), и `init()` его увидит. В Java 21 так нельзя.",
+    "sources": [
+      {
+        "title": "JLS §12.5 Creation of New Class Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.5"
+      },
+      {
+        "title": "JEP 513: Flexible Constructor Bodies (Java 25)",
+        "url": "https://openjdk.org/jeps/513"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-oop-default-diamond-01",
+    "num": "5.2",
+    "block": "java-oop",
+    "topic": "Наследование и интерфейсы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что будет с этим кодом?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "interface A { default String hi() { return \"A\"; } }",
+        "interface B { default String hi() { return \"B\"; } }",
+        "class C implements A, B {}"
+      ]
+    },
+    "options": [
+      "Не скомпилируется: `C` обязан переопределить `hi()`; внутри можно вызвать `A.super.hi()`",
+      "Скомпилируется; `new C().hi()` вернёт \"A\" — побеждает первый интерфейс в `implements`",
+      "Скомпилируется; `new C().hi()` бросит `IncompatibleClassChangeError`",
+      "Скомпилируется; вызов `new C().hi()` неоднозначен, но `((A) c).hi()` вернёт \"A\""
+    ],
+    "answer": 0,
+    "explanation": "Класс наследует два несвязанных default-метода с одинаковой сигнатурой — это ошибка компиляции («types A and B are incompatible»). Нужно переопределить `hi()` в `C` и при желании явно выбрать реализацию: `A.super.hi()`.\nПравила разрешения: метод класса (или суперкласса) побеждает default-метод интерфейса; более специфичный интерфейс (наследник) побеждает родительский. Если `B` перекомпилируют с новым default-методом отдельно от `C`, конфликт проявится уже в рантайме — `IncompatibleClassChangeError` при вызове.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.4 Inheriting Methods with Override-Equivalent Signatures",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.4"
+      },
+      {
+        "title": "JLS §15.12.3 Compile-Time Step 3",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-oop-static-hiding-01",
+    "num": "5.3",
+    "block": "java-oop",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Parent {",
+        "        static String kind() { return \"parent\"; }",
+        "        String name = \"P\";",
+        "        String who() { return \"P.who\"; }",
+        "    }",
+        "    static class Child extends Parent {",
+        "        static String kind() { return \"child\"; }",
+        "        String name = \"C\";",
+        "        @Override String who() { return \"C.who\"; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        Parent p = new Child();",
+        "        System.out.println(p.kind() + \" \" + p.name + \" \" + p.who());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "parent P C.who",
+      "child C C.who",
+      "parent C C.who",
+      "child P C.who"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "parent P C.who"
+    },
+    "explanation": "Виртуально диспетчеризуются только методы экземпляра. Статический метод в наследнике не переопределяет, а **скрывает** родительский: вызов выбирается по статическому типу выражения (`Parent`), даже если записан через объект.\nПоля тоже не полиморфны: `p.name` — поле `Parent`, у объекта два поля `name`. `@Override` на статическом методе — ошибка компиляции, это хороший способ поймать путаницу.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.2 Hiding (by Class Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.2"
+      },
+      {
+        "title": "JLS §8.3 Field Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-oop-override-rules-01",
+    "num": "5.4",
+    "block": "java-oop",
+    "topic": "Наследование и интерфейсы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В родителе: `protected Number load() throws IOException`. Какое объявление в наследнике корректно переопределяет метод?",
+    "options": [
+      "`public Integer load()` — без `throws`",
+      "`Number load() throws IOException` — без модификатора доступа",
+      "`protected Number load() throws Exception`",
+      "`protected Object load() throws IOException`"
+    ],
+    "answer": 0,
+    "explanation": "Переопределение может расширить доступ (`protected` → `public`), сузить тип возврата до подтипа (ковариантный возврат, через синтетический bridge-метод) и объявить меньше checked-исключений или ни одного.\nНельзя: сузить доступ (package-private уже `protected`), объявить более широкое checked-исключение (`Exception` шире `IOException`), вернуть супертип. Unchecked-исключения можно добавлять свободно.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.3 Requirements in Overriding and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.3"
+      },
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-oop-private-not-overridden-01",
+    "num": "5.5",
+    "block": "java-oop",
+    "topic": "Наследование и интерфейсы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Base {",
+        "        private String tag() { return \"base\"; }",
+        "        String describe() { return tag(); }",
+        "    }",
+        "    static class Derived extends Base {",
+        "        String tag() { return \"derived\"; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(new Derived().describe());",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "base",
+      "derived",
+      "Не скомпилируется: tag() в Derived конфликтует с private-методом",
+      "Не скомпилируется: Derived не видит tag()"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "base"
+    },
+    "explanation": "`private`-методы не наследуются и не переопределяются: `Derived.tag()` — совершенно отдельный метод с тем же именем. Вызов private-метода не диспетчеризуется виртуально: внутри `Base` всегда выбирается `Base.tag()` (с JDK 11 javac генерирует `invokevirtual`, но JVM выбирает разрешённый private-метод напрямую).\nЕсли на `Derived.tag()` поставить `@Override`, компилятор сообщит об ошибке — ещё одна причина ставить аннотацию всегда.",
+    "sources": [
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      },
+      {
+        "title": "JLS §8.4.8 Inheritance, Overriding, and Hiding",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8"
+      },
+      {
+        "title": "JVMS §6.5 invokevirtual",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-6.html#jvms-6.5.invokevirtual"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-phases-01",
+    "num": "5.6",
+    "block": "java-oop",
+    "topic": "Перегрузка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static void m(long x)    { System.out.println(\"long\"); }",
+        "    static void m(Integer x) { System.out.println(\"Integer\"); }",
+        "    static void m(int... x)  { System.out.println(\"int...\"); }",
+        "",
+        "    public static void main(String[] args) {",
+        "        m(5);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "long",
+      "Integer",
+      "int...",
+      "Не скомпилируется: вызов неоднозначен"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "long"
+    },
+    "explanation": "Перегрузка выбирается в три фазы: 1) без упаковки и varargs (подходит расширение `int → long`), 2) с упаковкой, 3) с varargs. Как только фаза нашла кандидатов, следующие не рассматриваются — поэтому `long`, хотя `Integer` «ближе по смыслу».\nПравило сделано ради совместимости: код до Java 5 не должен был менять поведение после появления автоупаковки и varargs.",
+    "sources": [
+      {
+        "title": "JLS §15.12.2 Compile-Time Step 2: Determine Method Signature",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2"
+      },
+      {
+        "title": "JLS §15.12.2.2 Phase 1: Identify Matching Arity Methods Applicable by Strict Invocation",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-null-01",
+    "num": "5.7",
+    "block": "java-oop",
+    "topic": "Перегрузка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static void log(Object o)  { System.out.println(\"Object\"); }",
+        "    static void log(String s)  { System.out.println(\"String\"); }",
+        "    static void log(Integer i) { System.out.println(\"Integer\"); }",
+        "",
+        "    public static void main(String[] args) {",
+        "        log(null);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Не скомпилируется: вызов неоднозначен",
+      "Object",
+      "String",
+      "NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "`null` подходит всем трём. Выбирается самый специфичный метод: `String` и `Integer` специфичнее `Object`, но друг с другом несравнимы — «reference to log is ambiguous».\nБез `log(Integer)` вызвался бы `log(String)`. Фикс — явное приведение `log((String) null)`. Та же неоднозначность возникает, когда в библиотеку добавляют новую перегрузку, и чужой код, передающий `null`, перестаёт компилироваться.",
+    "sources": [
+      {
+        "title": "JLS §15.12.2.5 Choosing the Most Specific Method",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-list-remove-01",
+    "num": "5.8",
+    "block": "java-oop",
+    "topic": "Перегрузка",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<Integer> list = new ArrayList<>(List.of(10, 20, 1, 2));",
+        "list.remove(1);",
+        "list.remove(Integer.valueOf(1));",
+        "System.out.println(list);"
+      ]
+    },
+    "options": [
+      "[10, 2]",
+      "[20, 2]",
+      "[10, 20, 2]",
+      "[10, 1, 2]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[10, 2]"
+    },
+    "explanation": "У `List` две перегрузки: `remove(int index)` и `remove(Object o)`. Для `remove(1)` в первой фазе подходит `remove(int)` без упаковки — удаляется элемент по индексу 1, то есть `20`. `remove(Integer.valueOf(1))` удаляет значение `1`.\nБаг в проде: `ids.remove(id)` с `int id` удаляет не тот элемент или бросает `IndexOutOfBoundsException`.",
+    "sources": [
+      {
+        "title": "Javadoc: List.remove",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "JLS §15.12.2.2 Phase 1: Identify Matching Arity Methods Applicable by Strict Invocation",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12.2.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-order-01",
+    "num": "5.9",
+    "block": "java-oop",
+    "topic": "Инициализация и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    public static void main(String[] args) {",
+        "        new Child();",
+        "        new Child();",
+        "    }",
+        "}",
+        "class Parent {",
+        "    static { System.out.print(\"Ps \"); }",
+        "    { System.out.print(\"Pi \"); }",
+        "    Parent() { System.out.print(\"Pc \"); }",
+        "}",
+        "class Child extends Parent {",
+        "    static { System.out.print(\"Cs \"); }",
+        "    { System.out.print(\"Ci \"); }",
+        "    Child() { System.out.print(\"Cc \"); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Ps Cs Pi Pc Ci Cc Pi Pc Ci Cc",
+      "Ps Pi Pc Cs Ci Cc Pi Pc Ci Cc",
+      "Ps Cs Pi Pc Ci Cc Ps Cs Pi Pc Ci Cc",
+      "Cs Ps Ci Cc Pi Pc Ci Cc Pi Pc"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Ps Cs Pi Pc Ci Cc Pi Pc Ci Cc"
+    },
+    "explanation": "Статическая инициализация — один раз на класс, при первом активном использовании, и суперкласс инициализируется раньше подкласса: `Ps Cs`.\nСоздание объекта: конструктор `Child` сначала вызывает `super()`; конструктор `Parent` выполняет инициализаторы экземпляра `Parent` (`Pi`) и своё тело (`Pc`); затем — инициализаторы полей и блоки `Child` (`Ci`) и тело `Child` (`Cc`). Второй `new Child()` повторяет только часть экземпляра.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "JLS §12.5 Creation of New Class Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-static-order-01",
+    "num": "5.10",
+    "block": "java-oop",
+    "topic": "Инициализация и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Registry {",
+        "        static final Registry INSTANCE = new Registry();",
+        "        static int created = 0;",
+        "",
+        "        Registry() { created++; }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(Registry.created);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "0",
+      "1",
+      "2",
+      "NullPointerException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "0"
+    },
+    "explanation": "Статические инициализаторы выполняются в текстовом порядке. Сначала `INSTANCE = new Registry()`: конструктор делает `created++` (было 0 по умолчанию, стало 1). Затем выполняется `created = 0` и затирает единицу.\nБез инициализатора (`static int created;`) было бы `1`. Мораль: статическое поле-синглтон, чей конструктор трогает другие статические поля, объявлять после них — или избегать такой связности.",
+    "sources": [
+      {
+        "title": "JLS §12.4.2 Detailed Initialization Procedure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.2"
+      },
+      {
+        "title": "JLS §8.3.3 Restrictions on Field References in Initializers",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.3.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-init-constant-trigger-01",
+    "num": "5.11",
+    "block": "java-oop",
+    "topic": "Инициализация и константы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа? (переменной окружения `NOPE_HOST` нет)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Config {",
+        "        static final String NAME = \"app\";",
+        "        static final String HOST = System.getenv().getOrDefault(\"NOPE_HOST\", \"localhost\");",
+        "        static { System.out.print(\"init \"); }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.print(Config.NAME + \" \");",
+        "        System.out.print(Config.HOST);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "app init localhost",
+      "init app localhost",
+      "app localhost",
+      "init app init localhost"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "app init localhost"
+    },
+    "explanation": "`NAME` — константная переменная (`static final String` с константным инициализатором): компилятор подставляет `\"app\"` в место использования, и обращение к ней класс не инициализирует.\n`HOST` вычисляется вызовом метода — это обычное статическое поле, и первое обращение к нему запускает инициализацию `Config` (печатается `init`). На этом же правиле построен ленивый синглтон holder-класса.",
+    "sources": [
+      {
+        "title": "JLS §12.4.1 When Initialization Occurs",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html#jls-12.4.1"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-ovl-constant-inlining-01",
+    "num": "5.12",
+    "block": "java-oop",
+    "topic": "Инициализация и константы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В `lib.jar` объявлено `public static final int MAX_SIZE = 100;`, сервис использует `Limits.MAX_SIZE`. В новой версии библиотеки поставили 500 и подложили новый jar, **не пересобирая** сервис. Что увидит сервис?",
+    "options": [
+      "100: компилятор подставил значение константы в байткод сервиса",
+      "500: значение поля читается из класса `Limits` при его загрузке",
+      "`NoSuchFieldError` при первом обращении",
+      "100 до перезапуска JVM, после перезапуска — 500"
+    ],
+    "answer": 0,
+    "explanation": "`static final` поле примитивного типа или `String` с константным инициализатором — константная переменная. `javac` подставляет её значение в место использования, и ссылки на `Limits.MAX_SIZE` в байткоде сервиса нет вообще (даже класс `Limits` не загрузится).\nФормально JLS считает смену значения бинарно совместимой (ошибок линковки не будет), но старые бинарники молча видят старое значение до перекомпиляции. Если значение может меняться, его делают не константой: метод, `static final Integer` или инициализация через вызов метода. То же касается меток `case`.",
+    "sources": [
+      {
+        "title": "JLS §13.4.9 final Fields and static Constant Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-13.html#jls-13.4.9"
+      },
+      {
+        "title": "JLS §15.29 Constant Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.29"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-inner-ref-01",
+    "num": "5.13",
+    "block": "java-oop",
+    "topic": "Вложенные классы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Задачи из `newTask()` кладутся в долгоживущую очередь, а сам `ReportService` уже не нужен. Что верно для JDK 21?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class ReportService {",
+        "    private final byte[] cache = new byte[50_000_000];",
+        "    private final String name;",
+        "",
+        "    ReportService(String name) { this.name = name; }",
+        "",
+        "    class Task implements Runnable {",
+        "        public void run() { System.out.println(\"report \" + name); }",
+        "    }",
+        "    Runnable newTask() { return new Task(); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Каждая `Task` хранит `ReportService.this`, поэтому сервис вместе с 50 МБ `cache` живёт, пока жива задача",
+      "`Task` читает только `name`, поэтому javac копирует в неё строку, а не ссылку на сервис",
+      "Ссылки на внешний объект нет: начиная с JDK 18 javac её не добавляет",
+      "Ссылка есть, но слабая — GC соберёт сервис при нехватке памяти"
+    ],
+    "answer": 0,
+    "explanation": "Внутренний (нестатический) класс, который обращается к полям внешнего объекта, хранит ссылку на него в синтетическом поле `this$0`. Это сильная ссылка: внешний объект целиком, со всеми полями, достижим, пока достижима задача.\nС JDK 18 (JDK-8271623) javac не добавляет `this$0`, если inner-класс внешний экземпляр не использует и не `Serializable`. Ловушка: будь `name` константой (`private final String name = \"daily\"`), javac подставил бы строку в `run()` и ссылки бы не было. Надёжное правило: вложенный класс делать `static`, а нужные данные передавать явно.",
+    "sources": [
+      {
+        "title": "JLS §8.1.3 Inner Classes and Enclosing Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.3"
+      },
+      {
+        "title": "JDK-8271623: Omit enclosing instance fields from inner classes that don't use it",
+        "url": "https://bugs.openjdk.org/browse/JDK-8271623"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-this-lambda-01",
+    "num": "5.14",
+    "block": "java-oop",
+    "topic": "Вложенные классы",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает программа?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    void run() {",
+        "        Runnable lambda = () -> System.out.println(this.getClass().getSimpleName());",
+        "        Runnable anon = new Runnable() {",
+        "            public void run() {",
+        "                String n = this.getClass().getSimpleName();",
+        "                System.out.println(n.isEmpty() ? \"(anonymous)\" : n);",
+        "            }",
+        "        };",
+        "        lambda.run();",
+        "        anon.run();",
+        "    }",
+        "",
+        "    public static void main(String[] args) { new Main().run(); }",
+        "}"
+      ]
+    },
+    "options": [
+      "Main\n(anonymous)",
+      "(anonymous)\n(anonymous)",
+      "Main\nMain",
+      "Main$$Lambda\n(anonymous)"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Main\n(anonymous)"
+    },
+    "explanation": "В лямбде `this` означает то же, что в окружающем коде, — экземпляр `Main`: лямбда не вводит новой области видимости для `this`.\nАнонимный класс — настоящий класс, и `this` в нём — экземпляр анонимного класса (`getSimpleName()` у него пустой); внешний объект доступен как `Main.this`. Захват внешнего объекта у обоих — только если он используется (у анонимных классов — с JDK 18 и если класс не `Serializable`; раньше анонимный класс в нестатическом контексте захватывал его всегда).",
+    "sources": [
+      {
+        "title": "JLS §15.27.2 Lambda Body",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.2"
+      },
+      {
+        "title": "JLS §15.9.5 Anonymous Class Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-nested-double-brace-01",
+    "num": "5.15",
+    "block": "java-oop",
+    "topic": "Вложенные классы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Чем плоха «инициализация двойными скобками» в методе экземпляра?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<String, Integer> limits() {",
+        "    return new HashMap<>() {{",
+        "        put(\"free\", 10);",
+        "        put(\"pro\", 100);",
+        "    }};",
+        "}"
+      ]
+    },
+    "options": [
+      "Каждый вызов создаёт экземпляр анонимного подкласса `HashMap`, который держит ссылку на внешний объект; плюс лишний класс на каждое такое место",
+      "Ничем: это синтаксический сахар, компилятор превращает его в `Map.of`",
+      "Не скомпилируется: в анонимном классе нельзя вызывать методы суперкласса в инициализаторе",
+      "Карта получится неизменяемой, `put` позже бросит `UnsupportedOperationException`"
+    ],
+    "answer": 0,
+    "explanation": "Внешние скобки — анонимный подкласс `HashMap`, внутренние — его инициализатор экземпляра. `HashMap` сериализуем, поэтому javac сохраняет ссылку `this$0` на внешний объект даже в JDK 18+ — карта, отданная наружу или закешированная, удерживает весь объект.\nПлюс отдельный класс на каждое место использования и сюрпризы с `getClass()` в `equals`, сериализации и Jackson. Замена: `Map.of(...)` или обычное заполнение.",
+    "sources": [
+      {
+        "title": "JLS §15.9.5 Anonymous Class Declarations",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.5"
+      },
+      {
+        "title": "JLS §8.1.3 Inner Classes and Enclosing Instances",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-final-not-immutable-01",
+    "num": "5.16",
+    "block": "java-oop",
+    "topic": "Объекты и неизменяемость",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "final class Team {",
+        "    private final List<String> members;",
+        "    Team(List<String> members) { this.members = members; }",
+        "    List<String> members() { return members; }",
+        "}",
+        "var src = new ArrayList<>(List.of(\"ann\"));",
+        "var team = new Team(src);",
+        "src.add(\"bob\");",
+        "team.members().add(\"eve\");",
+        "System.out.println(team.members());"
+      ]
+    },
+    "options": [
+      "[ann, bob, eve]",
+      "[ann]",
+      "[ann, bob]",
+      "UnsupportedOperationException"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[ann, bob, eve]"
+    },
+    "explanation": "`final` запрещает переприсвоить ссылку, но не менять объект по ней. `Team` хранит чужой изменяемый список и отдаёт его наружу — состояние меняют и создатель, и любой получатель.\nЗащитные копии: в конструкторе `this.members = List.copyOf(members)` (неизменяемая копия, заодно отвергает `null`), тогда геттер может отдавать поле как есть. Для `record` — то же в компактном конструкторе.",
+    "sources": [
+      {
+        "title": "Javadoc: List.copyOf",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+      },
+      {
+        "title": "JLS §4.12.4 final Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.12.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-clone-shallow-01",
+    "num": "5.17",
+    "block": "java-oop",
+    "topic": "Объекты и неизменяемость",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[][] grid = {{1, 2}, {3, 4}};",
+        "int[][] copy = grid.clone();",
+        "copy[0][0] = 9;",
+        "copy[1] = new int[]{7, 7};",
+        "System.out.println(grid[0][0] + \" \" + grid[1][0]);"
+      ]
+    },
+    "options": [
+      "9 3",
+      "1 3",
+      "9 7",
+      "1 7"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "9 3"
+    },
+    "explanation": "`clone()` массива — поверхностная копия: новый внешний массив с теми же ссылками на внутренние строки. Изменение `copy[0][0]` видно через `grid`, а замена целой строки `copy[1]` — нет.\nГлубокая копия двумерного массива — копировать каждую строку (`Arrays.stream(grid).map(int[]::clone).toArray(int[][]::new)`). То же верно для `ArrayList(Collection)`, `List.copyOf` и `Object.clone` по умолчанию.",
+    "sources": [
+      {
+        "title": "JLS §10.7 Array Members",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.7"
+      },
+      {
+        "title": "Javadoc: Object.clone",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  },
+  {
+    "id": "java-core-objects-serialization-recall-01",
+    "num": "5.18",
+    "block": "java-oop",
+    "topic": "Объекты и неизменяемость",
+    "type": "recall",
+    "level": "senior",
+    "question": "Чем опасна встроенная Java-сериализация (`Serializable`) и что использовать вместо неё?",
+    "answer_text": "- **Безопасность**: десериализация недоверенных байтов может выполнить код через цепочки «гаджетов» из классов на classpath (громкие RCE в Commons Collections, WebLogic и т. п.). Защита — фильтры десериализации (JEP 290, JEP 415), а лучше не принимать сериализованные объекты извне вообще.\n- **Обход конструкторов**: объект создаётся без вызова конструктора класса, инварианты и проверки не выполняются (кроме `record` — они создаются через канонический конструктор).\n- **Хрупкость**: без явного `serialVersionUID` он вычисляется из структуры класса (имя, модификаторы, интерфейсы, поля, не-private методы и конструкторы), и многие безобидные изменения — новый метод, поле, модификатор — дают `InvalidClassException`. Сериализованная форма становится публичным API, который надо поддерживать.\n- **Вместо**: JSON/Protobuf/Avro с явной схемой; для кешей и очередей — те же форматы. Если `Serializable` нужен (сессии, старые API) — явный `serialVersionUID` и минимальная форма.",
+    "explanation": "Две проблемы: безопасность при чтении чужих данных и хрупкость формата.",
+    "sources": [
+      {
+        "title": "Javadoc: Serializable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/Serializable.html"
+      },
+      {
+        "title": "JEP 290: Filter Incoming Serialization Data",
+        "url": "https://openjdk.org/jeps/290"
+      },
+      {
+        "title": "JEP 415: Context-Specific Deserialization Filters",
+        "url": "https://openjdk.org/jeps/415"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-10"
+    }
+  }
+]
