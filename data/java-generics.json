@@ -662,5 +662,856 @@
       "by": "adversary-agent",
       "at": "2026-11-10"
     }
+  },
+  {
+    "id": "java-generics-type-param-scope-01",
+    "num": "9.19",
+    "block": "java-generics",
+    "topic": "Объявление и границы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие методы класса `Box<T>` компилируются?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Box<T> {",
+        "    static T empty() { return null; }                    // (1)",
+        "    static <T> T first(List<T> l) { return l.get(0); }   // (2)",
+        "    <U> U cast(Object o) { return (U) o; }               // (3)",
+        "    R map(T t) { return null; }                          // (4)",
+        "}"
+      ]
+    },
+    "options": [
+      "(2) и (3)",
+      "Только (2)",
+      "(1), (2) и (3)",
+      "Только (3)"
+    ],
+    "answer": 0,
+    "explanation": "`T` класса — свойство экземпляра: у `Box<String>` и `Box<Integer>` общий статический контекст, поэтому в static-методе `T` класса не виден (`non-static type variable T cannot be referenced from a static context`). Static-метод объявляет свой параметр `<T>` перед типом возврата. В (2) он скрывает `T` класса: компилируется, но лучше дать другое имя.\n(3) компилируется с предупреждением `unchecked`: приведение к `U` после стирания ничего не проверяет. В (4) `R` нигде не объявлен — `cannot find symbol`; запись `<R> R map(T t)` объявила бы его.",
+    "sources": [
+      {
+        "title": "JLS §8.1.2 Generic Classes and Type Parameters",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.2"
+      },
+      {
+        "title": "JLS §8.4.4 Generic Methods",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-bounds-syntax-01",
+    "num": "9.20",
+    "block": "java-generics",
+    "topic": "Объявление и границы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие объявления компилируются?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "<T extends Number & Comparable<T>> void a() { }        // (1)",
+        "<T extends Comparable<T> & Number> void b() { }        // (2)",
+        "<T super Integer> void c() { }                         // (3)",
+        "<T extends CharSequence & Comparable<T>> void d() { }  // (4)"
+      ]
+    },
+    "options": [
+      "(1) и (4)",
+      "(1), (2) и (4)",
+      "Все, кроме (2)",
+      "Только (1)"
+    ],
+    "answer": 0,
+    "explanation": "Граница параметра типа — `extends` и один класс плюс любое число интерфейсов через `&`. Класс, если он есть, обязан стоять первым, иначе `interface expected here` — это (2). Нижней границы у параметра типа нет вовсе: `super` бывает только у wildcard'а (`? super Integer`), поэтому (3) — синтаксическая ошибка.\nПорядок границ не косметика: `T` стирается до первой из них (9.21, 9.22).",
+    "sources": [
+      {
+        "title": "JLS §4.4 Type Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.4"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-object-bound-max-01",
+    "num": "9.21",
+    "block": "java-generics",
+    "topic": "Объявление и границы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`Collections.max` объявлен как `<T extends Object & Comparable<? super T>> T max(Collection<? extends T> coll)`. Зачем `Object &`, если любой класс и так наследник `Object`?",
+    "options": [
+      "Ради бинарной совместимости: `T` стирается до первой границы, и без `Object &` метод в байткоде возвращал бы `Comparable`, а не `Object`, как до Java 5",
+      "Чтобы запретить вызов с примитивами: `int` не наследник `Object`",
+      "Без класса на первом месте в границе нельзя указать интерфейс `Comparable`",
+      "Чтобы для пустой коллекции `max` возвращал `null`, а не бросал исключение"
+    ],
+    "answer": 0,
+    "explanation": "Стирание берёт первую границу. С `<T extends Comparable<? super T>>` дескриптор стал бы `(Ljava/util/Collection;)Ljava/lang/Comparable;`, и классы, скомпилированные до Java 5 против `Object max(Collection)`, падали бы с `NoSuchMethodError`. `Object &` сохраняет дескриптор `…)Ljava/lang/Object;`: это видно в строке `descriptor:` у `javap -s java.util.Collections` (сама сигнатура там печатается без `Object &`).\nВ своём коде трюк нужен редко, только при генерификации уже опубликованного API. Граница из одних интерфейсов допустима (9.20), а `max` пустой коллекции бросает `NoSuchElementException`.",
+    "sources": [
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      },
+      {
+        "title": "Javadoc: Collections.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#max(java.util.Collection)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-erasure-to-bound-01",
+    "num": "9.22",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Box<T extends Comparable<T>> { T value; }",
+        "",
+        "var f = Box.class.getDeclaredField(\"value\");",
+        "System.out.println(f.getType().getSimpleName());",
+        "System.out.println(f.getGenericType());"
+      ]
+    },
+    "options": [
+      "Comparable\nT",
+      "Object\nT",
+      "Object\nObject",
+      "Comparable\nComparable<T>"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Comparable\nT"
+    },
+    "explanation": "Параметр типа стирается до первой (левой) границы, а без границы — до `Object`. В class-файле поле `value` имеет тип `Comparable`, его и возвращает `getType()`.\nНо объявление поля хранит исходный тип в атрибуте `Signature`, и `getGenericType()` отдаёт `TypeVariable` с именем `T`. На этом же держатся type token и `ParameterizedTypeReference` (9.13).",
+    "sources": [
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      },
+      {
+        "title": "Javadoc: Field.getGenericType",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Field.html#getGenericType()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-getclass-same-01",
+    "num": "9.23",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> a = new ArrayList<>();",
+        "List<Integer> b = new ArrayList<>();",
+        "System.out.println(a.getClass() == b.getClass());",
+        "System.out.println(a.getClass().getName());"
+      ]
+    },
+    "options": [
+      "true\njava.util.ArrayList",
+      "false\njava.util.ArrayList",
+      "true\njava.util.ArrayList<java.lang.String>",
+      "Не скомпилируется: несравнимые типы `Class`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true\njava.util.ArrayList"
+    },
+    "explanation": "Объект `Class` один на класс, а не на параметризацию: в рантайме оба объекта — просто `ArrayList`. Сравнение компилируется: статический тип `getClass()` — `Class<? extends List>` (стирание статического типа выражения); такие типы приводимы друг к другу, поэтому `==` допустим.\nОтсюда практический вывод: по объекту не узнать, `List<String>` это или `List<Integer>`, — ни через `getClass`, ни через `instanceof`. Аргументы типа живут только в объявлениях (9.13, 9.22).",
+    "sources": [
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      },
+      {
+        "title": "Javadoc: Object.getClass",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html#getClass()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-exceptions-01",
+    "num": "9.24",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что из этого компилируется?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Failure<T> extends Exception { }                          // (1)",
+        "<X extends Exception> void f() { try { } catch (X e) { } }      // (2)",
+        "<X extends Exception> void g() throws X { }                     // (3)"
+      ]
+    },
+    "options": [
+      "Только (3)",
+      "(1) и (3)",
+      "Только (2)",
+      "Ничего"
+    ],
+    "answer": 0,
+    "explanation": "`catch` выбирает обработчик по классу исключения в рантайме, а `T` и `X` стёрты — сверять не с чем. Поэтому generic-подкласс `Throwable` запрещён (`a generic class may not extend java.lang.Throwable`), как и переменная типа в `catch` (`unexpected type`).\nВ `throws` переменная типа разрешена: это проверка только компилятора. На ней построен `Optional.orElseThrow(Supplier<? extends X>) throws X` и приём sneaky throw.",
+    "sources": [
+      {
+        "title": "JLS §8.1.2 Generic Classes and Type Parameters",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.2"
+      },
+      {
+        "title": "JLS §14.20 The try statement",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.20"
+      },
+      {
+        "title": "Javadoc: Optional.orElseThrow(Supplier)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html#orElseThrow(java.util.function.Supplier)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-super-read-write-01",
+    "num": "9.25",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Какие строки компилируются?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<? super Integer> sink = new ArrayList<Number>();",
+        "sink.add(1);               // (1)",
+        "sink.add(2.5);             // (2)",
+        "Integer i = sink.get(0);   // (3)",
+        "Object o = sink.get(0);    // (4)"
+      ]
+    },
+    "options": [
+      "(1) и (4)",
+      "(1), (2) и (4)",
+      "Только (4)",
+      "(1), (3) и (4)"
+    ],
+    "answer": 0,
+    "explanation": "За `? super Integer` может стоять `List<Integer>`, `List<Number>` или `List<Object>`, какой именно — неизвестно. Записать безопасно только то, что подходит всем: `Integer` и `null`. `2.5` — это `Double`, в `List<Integer>` ему нельзя (`double cannot be converted to CAP#1`), хотя реальный список здесь `ArrayList<Number>`: компилятор смотрит на тип переменной.\nЧитать можно, но общий тип у всех вариантов только `Object`, поэтому (3) не компилируется. Это «Consumer Super»: в такой список пишут, а не читают из него.",
+    "sources": [
+      {
+        "title": "JLS §5.1.10 Capture Conversion",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html#jls-5.1.10"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-super-accepts-01",
+    "num": "9.26",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Метод `static void fillIds(List<? super Integer> dst)` дописывает в список `Integer`-идентификаторы. С какими аргументами вызов компилируется?",
+    "options": [
+      "`List<Integer>`, `List<Number>`, `List<Object>`",
+      "Только `List<Integer>`",
+      "`List<Integer>`, `List<Number>`, `List<Object>` и `List<Long>`",
+      "`List<Integer>` и `List<Number>`, но не `List<Object>`"
+    ],
+    "answer": 0,
+    "explanation": "`? super Integer` принимает список любого супертипа `Integer`: `Number`, `Object`, а также `Serializable` и `Comparable<Integer>`. С параметром `List<Integer>` подошёл бы только он сам: дженерики инвариантны.\n`List<Long>` не подходит: `Long` не супертип `Integer`, запись `Integer` сломала бы такой список. `? super` нужен, когда метод должен принимать «широкий» список, например общий `List<Object>`. Цена — `get()` вернёт `Object` (9.25).",
+    "sources": [
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      },
+      {
+        "title": "JLS §4.10.2 Subtyping among Class and Interface Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.10.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-unbounded-vs-object-raw-01",
+    "num": "9.27",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что верно?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "static void a(List<Object> l) { }",
+        "static void b(List<?> l)      { }",
+        "static void c(List l)         { }",
+        "",
+        "List<String> s = new ArrayList<>();"
+      ]
+    },
+    "options": [
+      "`b(s)` и `c(s)` компилируются, `a(s)` — нет; внутри `b` вызов `l.add(\"x\")` не скомпилируется, внутри `c` — скомпилируется с предупреждением `unchecked`",
+      "Все три вызова компилируются: после стирания `List<Object>`, `List<?>` и `List` — одно и то же",
+      "`a(s)` и `b(s)` компилируются, `c(s)` — только с явным приведением",
+      "`b(s)` и `c(s)` компилируются; внутри обоих методов `l.add(\"x\")` запрещён"
+    ],
+    "answer": 0,
+    "explanation": "`List<Object>` — список именно `Object`, `List<String>` его подтипом не является. `List<?>` — список неизвестного, но конкретного типа: принимает любой список, а писать в него можно только `null`, и чужой `List<String>` защищён.\nRaw `List` выключает проверку целиком: `add(\"x\")` и `add(42)` проходят с `unchecked`, и `List<String>` можно отравить (9.17). Raw-типы оставлены для совместимости с кодом до Java 5; в новом коде вместо них — `List<?>`.",
+    "sources": [
+      {
+        "title": "JLS §4.8 Raw Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.8"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-function-pecs-01",
+    "num": "9.28",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`map` в своём классе объявлен без wildcard'ов. Какие вызовы не скомпилируются, хотя с сигнатурой `Function<? super T, ? extends R>` (как у `Stream.map`) прошли бы?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Box<T> {",
+        "    <R> Box<R> map(Function<T, R> f) { … }",
+        "}",
+        "",
+        "Box<String> box = …;",
+        "Function<Object, Integer> hash = Object::hashCode;",
+        "Function<String, Integer> len = String::length;"
+      ]
+    },
+    "options": [
+      "`box.map(hash)` и `Box<Number> r = box.map(len);`",
+      "Только `box.map(hash)`",
+      "Только `Box<Number> r = box.map(len);`",
+      "Никакие: `Function` сама по себе контравариантна по аргументу"
+    ],
+    "answer": 0,
+    "explanation": "`Function<T, R>` инвариантна по обоим параметрам: `Function<Object, Integer>` не `Function<String, …>`, хотя функция от любого объекта строку примет. Функция потребляет `T` — значит `? super T`, производит `R` — значит `? extends R`. Так объявлены `Stream.map`, `Optional.map`, `Comparator.comparing`.\nЛовушка: `Box<Number> r = box.map(String::length)` компилируется и без wildcard'ов — лямбда или ссылка на метод подстраивается под нужный тип. Ломаются вызовы с уже типизированной переменной-функцией, а в переиспользуемом коде это обычное дело.",
+    "sources": [
+      {
+        "title": "Javadoc: Stream.map",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#map(java.util.function.Function)"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-self-bound-builder-01",
+    "num": "9.29",
+    "block": "java-generics",
+    "topic": "Рекурсивные границы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Зачем `Builder` объявлен с рекурсивной границей `B extends Builder<B>` и методом `self()`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "abstract class Builder<B extends Builder<B>> {",
+        "    String name;",
+        "    B name(String n) { this.name = n; return self(); }",
+        "    abstract B self();",
+        "}",
+        "class PizzaBuilder extends Builder<PizzaBuilder> {",
+        "    int size;",
+        "    PizzaBuilder size(int s) { this.size = s; return this; }",
+        "    PizzaBuilder self() { return this; }",
+        "}",
+        "",
+        "new PizzaBuilder().name(\"Margherita\").size(30);"
+      ]
+    },
+    "options": [
+      "Чтобы унаследованный `name()` возвращал `PizzaBuilder`, а не `Builder`: иначе после него `.size(30)` не найдётся",
+      "Чтобы запретить создавать `Builder` без наследника: `abstract` для этого недостаточно",
+      "Чтобы `self()` создавал новый экземпляр и билдер был неизменяемым",
+      "Это нужно для сериализации билдера: без параметра тип стирается"
+    ],
+    "answer": 0,
+    "explanation": "Если бы `name()` возвращал `Builder`, цепочка после него видела бы только методы `Builder` — `cannot find symbol … method size(int)`. Параметр `B` означает «мой собственный тип»: наследник подставляет себя (`Builder<PizzaBuilder>`), и унаследованные методы возвращают `PizzaBuilder`.\n`self()` нужен, чтобы обойтись без непроверяемого `(B) this`. От ошибки наследника граница не защищает: `class X extends Builder<PizzaBuilder>` тоже компилируется — это соглашение. Тот же приём в `Enum<E extends Enum<E>>` (9.30).",
+    "sources": [
+      {
+        "title": "JLS §4.4 Type Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.4"
+      },
+      {
+        "title": "JLS §8.1.2 Generic Classes and Type Parameters",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-enum-self-bound-01",
+    "num": "9.30",
+    "block": "java-generics",
+    "topic": "Рекурсивные границы",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Зачем `java.lang.Enum` объявлен как `Enum<E extends Enum<E>>`?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "enum Color { RED }",
+        "enum Size { S }",
+        "",
+        "Color.RED.compareTo(Size.S);"
+      ]
+    },
+    "options": [
+      "Чтобы `compareTo(E)` и `getDeclaringClass()` работали с точным типом перечисления: `Color.RED.compareTo(Size.S)` не компилируется",
+      "Чтобы запретить наследоваться от конкретного enum",
+      "Чтобы enum можно было использовать в `switch`",
+      "Чтобы `EnumSet` мог хранить константы разных перечислений"
+    ],
+    "answer": 0,
+    "explanation": "`Enum<E>` реализует `Comparable<E>`. `Color` — это `Enum<Color>`, значит, у него `compareTo(Color)`, и сравнение с `Size` отбивает компилятор (`Size cannot be converted to Color`). С `Comparable<Enum>` такой вызов компилировался бы и падал в рантайме с `ClassCastException`: эта проверка в `compareTo` есть.\nТа же граница даёт `getDeclaringClass()` типа `Class<E>` и позволяет `EnumSet` и `EnumMap` требовать константы одного перечисления. Запрет наследования от enum — отдельное правило JLS (неявный `final` или `sealed`), к параметру типа отношения не имеет.",
+    "sources": [
+      {
+        "title": "Javadoc: Enum",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      },
+      {
+        "title": "JLS §8.9 Enum Classes",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.9"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-wildcard-vs-type-param-01",
+    "num": "9.31",
+    "block": "java-generics",
+    "topic": "Проектирование API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В каком из методов параметр типа `<T>` стоит заменить wildcard'ом?",
+    "options": [
+      "`static <T> int countNulls(List<T> list)`",
+      "`static <T> T first(List<T> list)`",
+      "`static <T> void addTwice(List<T> list, T item)`",
+      "`static <T> void copy(List<? super T> dst, List<? extends T> src)`"
+    ],
+    "answer": 0,
+    "explanation": "Параметр типа нужен, когда он связывает части сигнатуры: параметр с возвратом (`first`), список с элементом (`addTwice`), два списка (`copy`). Если `T` встречается в сигнатуре один раз, он ничего не связывает: `countNulls(List<?> list)` говорит то же самое проще и честнее.\nЕсли реализации всё же нужно имя типа (например, чтобы записать элемент обратно), публичная сигнатура остаётся с `?`, а внутри вызывается приватный helper с `<T>` (9.5).",
+    "sources": [
+      {
+        "title": "JLS §8.4.4 Generic Methods",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.4"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-wildcard-return-01",
+    "num": "9.32",
+    "block": "java-generics",
+    "topic": "Проектирование API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Метод сервиса объявлен как `List<? extends Number> loadAmounts()`. Что с этим не так?",
+    "options": [
+      "Wildcard достаётся каждому вызывающему: в список ничего не добавить, и его не передать в метод, ждущий `List<Number>`. Гибкость нужна в параметрах, а не в возврате",
+      "Не скомпилируется: wildcard допустим только в типах параметров",
+      "В рантайме вернётся `List<Object>`, и чтение элементов бросит `ClassCastException`",
+      "Ничего: для вызывающего это то же самое, что `List<Number>`"
+    ],
+    "answer": 0,
+    "explanation": "Wildcard в параметре расширяет круг допустимых аргументов, и пользователь его не замечает. В возврате он переходит в код каждого вызывающего: `loadAmounts().add(1)` не компилируется (`int cannot be converted to CAP#1`), передача в `void use(List<Number>)` тоже (`List<CAP#1> cannot be converted to List<Number>`).\nВозвращают конкретный тип: `List<Number>` или `List<BigDecimal>`. Исключение — когда сам тип возврата по смыслу «чей-то» (`Class<? extends T>` у `getClass`).",
+    "sources": [
+      {
+        "title": "The Java Tutorials: Guidelines for Wildcard Use",
+        "url": "https://docs.oracle.com/javase/tutorial/java/generics/wildcardGuidelines.html"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-var-diamond-01",
+    "num": "9.33",
+    "block": "java-generics",
+    "topic": "Вывод типов",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var list = new ArrayList<>();",
+        "list.add(\"a\");",
+        "list.add(1);",
+        "String s = list.get(0);",
+        "System.out.println(s);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется: на строке `String s = list.get(0)`",
+      "Не скомпилируется: на строке `list.add(1)`",
+      "a",
+      "ClassCastException"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "Diamond выводит аргумент типа из цели присваивания и из аргументов конструктора. У `var` цели нет, аргументов тоже нет — выводить не из чего, и `E` берётся по верхней границе: `ArrayList<Object>`. (С аргументом `new ArrayList<>(List.of(\"a\"))` вывелся бы `ArrayList<String>`.) Поэтому `add(\"a\")` и `add(1)` законны, а `get(0)` возвращает `Object`: `incompatible types: Object cannot be converted to String`.\nС `var` аргумент указывают справа: `var list = new ArrayList<String>();`. Иначе получится список `Object`, и ошибка всплывёт далеко от объявления.",
+    "sources": [
+      {
+        "title": "JLS §14.4.1 Local Variable Declarators and Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html#jls-14.4.1"
+      },
+      {
+        "title": "JLS §15.9.1 Determining the Class being Instantiated",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-override-erasure-01",
+    "num": "9.34",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что будет с (1) и (2), если компилировать их по отдельности?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class P1 { void m(List<String> l) { } }",
+        "class A extends P1 { @Override void m(List l) { } }   // (1)",
+        "",
+        "class P2 { void m(List l) { } }",
+        "class B extends P2 { void m(List<String> l) { } }      // (2)"
+      ]
+    },
+    "options": [
+      "(1) компилируется и переопределяет; (2) — ошибка name clash",
+      "Оба компилируются: (1) переопределяет, (2) перегружает",
+      "Оба переопределяют родительский метод",
+      "(2) переопределяет, (1) — ошибка: `@Override` не находит метод"
+    ],
+    "answer": 0,
+    "explanation": "Метод переопределяет родительский, если его сигнатура — подсигнатура родительской: совпадает с ней или со стиранием её сигнатуры. `m(List)` — стирание `m(List<String>)`, значит, (1) переопределяет. Правило сделано для миграции: класс без дженериков может наследоваться от уже генерифицированной библиотеки.\nОбратное не работает: `m(List<String>)` не подсигнатура `m(List)`. А стирания у них одинаковые, поэтому перегрузкой это тоже быть не может: `name clash: … have the same erasure, yet neither overrides the other`.",
+    "sources": [
+      {
+        "title": "JLS §8.4.2 Method Signature",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.2"
+      },
+      {
+        "title": "JLS §8.4.8.1 Overriding (by Instance Methods)",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.4.8.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-intersection-cast-lambda-01",
+    "num": "9.35",
+    "block": "java-generics",
+    "topic": "Редкий синтаксис",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Runnable r1 = () -> { };",
+        "Runnable r2 = (Runnable & Serializable) () -> { };",
+        "System.out.println(r1 instanceof Serializable);",
+        "System.out.println(r2 instanceof Serializable);"
+      ]
+    },
+    "options": [
+      "false\ntrue",
+      "false\nfalse",
+      "true\ntrue",
+      "Не скомпилируется: приведение к пересечению типов разрешено только в границах дженериков"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false\ntrue"
+    },
+    "explanation": "Тип пересечения `A & B` пишется не только в границах, но и в приведении (JLS §15.16). Если цель лямбды — пересечение из одного функционального интерфейса и маркеров вроде `Serializable`, объект лямбды реализует их все.\nЭто нужно, когда лямбда уходит в сериализуемое состояние: например, компаратор в поле `TreeMap`. Так устроен `Comparator.comparing`: он возвращает `(Comparator<T> & Serializable) (c1, c2) -> …`. Обычная лямбда несериализуема, и сериализовать лямбды вообще не рекомендуется.",
+    "sources": [
+      {
+        "title": "JLS §15.16 Cast Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.16"
+      },
+      {
+        "title": "JLS §15.27.3 Type of a Lambda Expression",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.3"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-generic-constructor-01",
+    "num": "9.36",
+    "block": "java-generics",
+    "topic": "Редкий синтаксис",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "class Holder {",
+        "    final String text;",
+        "    <T extends Number> Holder(T value) {",
+        "        text = value.getClass().getSimpleName();",
+        "    }",
+        "}",
+        "",
+        "System.out.println(new <Integer>Holder(5).text);",
+        "System.out.println(new Holder(2.5).text);"
+      ]
+    },
+    "options": [
+      "Integer\nDouble",
+      "Number\nNumber",
+      "Не скомпилируется: у не-generic класса конструктор не может иметь параметров типа",
+      "Не скомпилируется: `new <Integer>Holder` — синтаксическая ошибка"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Integer\nDouble"
+    },
+    "explanation": "Конструктор может объявить свои параметры типа, как generic-метод, и класс для этого не обязан быть generic. Здесь `<T extends Number>` ограничивает аргумент: `new Holder(\"x\")` не скомпилируется. Явный аргумент типа пишется после `new`: `new <Integer>Holder(5)`. Обычно `T` выводится сам, как во второй строке.\n`getClass()` возвращает класс объекта в рантайме, а не стёртый `T`, поэтому печатаются `Integer` и `Double`. На практике generic-конструкторы редкость: чаще пишут статическую фабрику.",
+    "sources": [
+      {
+        "title": "JLS §8.8.4 Generic Constructors",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.8.4"
+      },
+      {
+        "title": "JLS §15.9 Class Instance Creation Expressions",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.9"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-invariance-recall-01",
+    "num": "9.37",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "recall",
+    "level": "senior",
+    "question": "Объясни: почему `List<Integer>` не подтип `List<Number>`, хотя `Integer[]` — подтип `Number[]`?",
+    "answer_text": "- Если бы `List<Integer>` был `List<Number>`, через него можно было бы сделать `add(1.5)`, и в список целых попал бы `Double`. Инвариантность закрывает эту дыру на этапе компиляции.\n- Массивы ковариантны (так сделали в Java 1.0, чтобы обобщённые утилиты вроде `sort(Object[])` или `equals(Object[], Object[])` работали с любым массивом ссылок, когда дженериков ещё не было). Дыра та же, но закрыта в рантайме: массив знает тип компонента и при записи бросает `ArrayStoreException`. Цена — проверка типа при каждой записи в массив ссылок.\n- Дженерикам так нельзя: аргументы типа стёрты, `ArrayList<Integer>` в рантайме — просто `ArrayList`, проверить запись нечем. Остаётся только запретить опасное присваивание компилятором.\n- Нужная гибкость выражается явно wildcard'ами: `List<? extends Number>` (читать как `Number`) и `List<? super Integer>` (писать `Integer`).\n- Отсюда же запрет `new List<String>[n]`: массив проверял бы запись, но не видел бы аргумента типа.",
+    "explanation": "Связка: массивы — ковариантны и проверяются в рантайме, дженерики — инвариантны и проверяются при компиляции, потому что стёрты (9.1, 9.9).",
+    "sources": [
+      {
+        "title": "JLS §4.10.2 Subtyping among Class and Interface Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.10.2"
+      },
+      {
+        "title": "JLS §10.5 Array Store Exception",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.5"
+      },
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-pecs-recall-01",
+    "num": "9.38",
+    "block": "java-generics",
+    "topic": "Вариантность и PECS",
+    "type": "recall",
+    "level": "senior",
+    "question": "Объясни PECS на примере `Collections.copy(List<? super T> dest, List<? extends T> src)`. Когда wildcard не нужен вовсе?",
+    "answer_text": "- **Producer Extends**: `src` только отдаёт элементы. `? extends T` позволяет передать `List<Integer>` при `T = Number`; читать из него можно как `T`, писать — только `null`.\n- **Consumer Super**: `dest` только принимает. `? super T` позволяет передать `List<Number>` или `List<Object>`; писать в него можно `T`, читать — только как `Object`.\n- Итог: `copy(List<Number>, List<Integer>)` компилируется, а с `List<T>` в обоих местах — нет, общего `T` не найти.\n- То же для функций: `Function<? super T, ? extends R>` в `Stream.map` — функция потребляет `T` и производит `R`. Компаратор потребляет: `Comparator<? super T>`.\n- Wildcard не нужен, если параметр и читают, и пишут как `T` (тогда `List<T>`), и в типе возврата — там он мешает вызывающему.\n- Обратное правило: если `<T>` встречается в сигнатуре один раз, его заменяют на `?`.\n- Ловушка самого `Collections.copy`: он перезаписывает элементы, а не добавляет, и при `dest.size() < src.size()` бросает `IndexOutOfBoundsException`.",
+    "explanation": "Правило выбора по роли параметра: только отдаёт — `extends`, только принимает — `super`, и то и другое — точный тип (9.2, 9.25, 9.28, 9.31, 9.32).",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.copy",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#copy(java.util.List,java.util.List)"
+      },
+      {
+        "title": "JLS §4.5.1 Type Arguments of Parameterized Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.5.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-erasure-recall-01",
+    "num": "9.39",
+    "block": "java-generics",
+    "topic": "Стирание типов",
+    "type": "recall",
+    "level": "senior",
+    "question": "Объясни, что такое стирание типов, что из-за него нельзя написать и как это обходят.",
+    "answer_text": "- Компилятор проверяет типы и стирает аргументы: `T` заменяется своей первой границей (без границы — `Object`), `List<String>` — на `List`, в местах использования вставляются приведения, для переопределения генерируются bridge-методы. Так сохранили совместимость с кодом до Java 5.\n- Нельзя: `new T()`, `new T[n]`, `T.class`, `o instanceof T` и `o instanceof List<String>`, если `o` — `Object` (с Java 16 `instanceof` с параметризованным типом разрешён, когда приведение безопасно, например из `Collection<String>`), `List<String>.class`, generic-подкласс `Throwable` и `catch (T e)`, два метода `m(List<String>)` и `m(List<Integer>)` — одинаковое стирание.\n- Последствия: `List<String>` и `List<Integer>` — один класс в рантайме; через raw-тип список можно отравить, а `ClassCastException` вылетит далеко от места записи (heap pollution).\n- Обходы: передать `Class<T>` (`isInstance`, `cast`, `getDeclaredConstructor().newInstance()`) или `Supplier<T>`; для вложенных типов — super type token (`new TypeReference<List<User>>() {}`): аргументы типа сохраняются в объявлениях классов, полей и методов (атрибут `Signature`).",
+    "explanation": "Ключ: стираются типы объектов и выражений, но не объявления — их читает рефлексия (9.8, 9.9, 9.11–9.17, 9.22).",
+    "sources": [
+      {
+        "title": "JLS §4.6 Type Erasure",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.6"
+      },
+      {
+        "title": "JLS §4.7 Reifiable Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.7"
+      },
+      {
+        "title": "JVMS §4.7.9 The Signature Attribute",
+        "url": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-4.html#jvms-4.7.9"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
+  },
+  {
+    "id": "java-generics-self-bound-recall-01",
+    "num": "9.40",
+    "block": "java-generics",
+    "topic": "Рекурсивные границы",
+    "type": "recall",
+    "level": "senior",
+    "question": "Объясни, зачем нужна рекурсивная граница `<T extends Foo<T>>`. Где она встречается в JDK и в обычном коде?",
+    "answer_text": "- Параметр означает «мой собственный тип»: подкласс подставляет себя: `enum Color {…}` компилятор превращает в `final class Color extends Enum<Color>` (руками так написать нельзя), и методы базового класса принимают и возвращают точный подтип, а не базовый.\n- `Enum<E extends Enum<E>>`: `compareTo(E)` сравнивает только константы одного перечисления, `getDeclaringClass()` возвращает `Class<E>`, `EnumSet`/`EnumMap` требуют константы одного enum.\n- `<T extends Comparable<? super T>>` в `Collections.max`/`sort`: элементы умеют сравниваться друг с другом (`? super T` — чтобы подошёл `compareTo` из предка).\n- Иерархия builder'ов: `Builder<B extends Builder<B>>` + `abstract B self()` — унаследованные setter'ы возвращают `B`, и цепочка не теряет методы подкласса.\n- Граница — соглашение, не гарантия: `class X extends Builder<PizzaBuilder>` тоже компилируется.",
+    "explanation": "Приём называют F-bounded polymorphism (F-ограниченный полиморфизм); в C++ аналог — CRTP (9.4, 9.21, 9.29, 9.30).",
+    "sources": [
+      {
+        "title": "JLS §4.4 Type Variables",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.4"
+      },
+      {
+        "title": "Javadoc: Enum",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-18"
+    }
   }
 ]
