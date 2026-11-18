@@ -137,6 +137,16 @@
 | 10–12 | `java-collections`, `java-streams`, `java-modern` | как раньше, номера сдвинуты |
 Правило: новый вопрос идёт в раздел своей темы, а не «в язык». Тема, которой нет среди разделов (например, `java.time`), получает свой раздел, когда наберётся 5+ вопросов. Номера `num` перенумерованы заново, `id` не менялись — прогресс сохранён.
 
+**Что дальше (2026-11-16).** «Java core» для хозяина — вся Java, включая concurrency и JVM/GC. Области строго по одной: пока Java не закончена, Spring, БД, Kafka и code-review не подмешивать. Порядок и остаток (на 2026-11-16 сделано ~210 вопросов, осталось ~150):
+1. `java-streams` — +~23 (сейчас 12): `flatMap`/`mapMulti`, `reduce`, `toMap` с merge, downstream-коллекторы, `teeing`, примитивные стримы, `takeWhile`, `findAny`, `peek`, bound/unbound ссылки, Gatherers. **Начать отсюда.**
+2. `java-collections` — +~8 (сейчас 32): `TreeMap`/`NavigableMap`, `ArrayDeque`, `WeakHashMap`/`IdentityHashMap`, `subList`, `Iterator.remove`, `Arrays.sort`/`binarySearch`.
+3. `java-modern` — +~13 (сейчас 12): `_` (22), новое в 25, scoped values, primitive patterns.
+4. stdlib — ~20: строки и Unicode — в `java-strings`; regex, `java.time`, I/O — новые разделы.
+5. `concurrency` — ~50.
+6. `jvm-gc` — ~40.
+Потом — Spring.
+**Раздел 9 `java-generics` добит 2026-11-18** (вне этого списка): 40 вопросов (+22), из них 6 «объясни сам». Покрыта шпаргалка хозяина `/home/verdad/Documents/nuestra/JAVA/Generics Table.md` и сверх неё: wildcard против параметра типа, wildcard в возврате, `var` + diamond, переопределение и стирание, пересечение типов в приведении, generic-конструктор. Сниппеты прогнаны, агент-противник пройден. Раздел закрыт, дальше — `java-streams`.
+
 **Сводный порядок блоков (2026-11-11):** Java, разделы 1–7 → `spring` → `persistence` (JPA/Hibernate + PostgreSQL: индексы, EXPLAIN, изоляция, блокировки, SQL-ловушки) → `code-review` → `system-design` → `kafka` → `microservices` → `git` (+ GitLab CI) → `docker` (+ K8s) → `c-basics`, `c-core`. Блок `java-new` из исходного плана поглощён разделом 4 `java-modern`. Темы каждого блока — в «Блоки (план)», в уточнении по реальному собесу и ниже.
 
 Инструменты (решено 2026-11-11, в план после Java и Spring, ближе к code-review; номера — при старте):
