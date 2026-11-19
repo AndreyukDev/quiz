@@ -92,3 +92,11 @@ select{font:inherit;color:inherit;background:var(--card);border:1px solid var(--
 .big{font-size:40px;font-weight:700;text-align:center;margin:8px 0 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);
   padding:10px 16px;border-radius:10px;font-size:14px;z-index:9;animation:fade .2s}
+.core{color:var(--c-num);font-weight:600}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:8;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.sheet-body{max-width:640px;margin:0 auto;min-height:100%;background:var(--bg);padding:16px 14px 40px}
+.theory{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px 16px;margin:0 0 12px}
+.theory h3{font-size:16px;margin:18px 0 6px}
+.theory p{margin:0 0 8px}.theory ul{margin:4px 0 10px;padding-left:20px}.theory li{margin:2px 0}
+.theory pre.code{margin:4px 0 10px}

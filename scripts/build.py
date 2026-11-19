@@ -30,7 +30,7 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 NUM_RE = re.compile(r"^[1-9]\d*\.[1-9]\d*$")
 
 COMMON = {"id", "num", "block", "topic", "type", "level", "question", "code", "explanation",
-          "sources", "java_version", "verified"}
+          "sources", "java_version", "verified", "core"}
 ALLOWED = {
     "mcq": COMMON | {"options", "answer"},
     "output": COMMON | {"options", "answer", "expect"},
@@ -97,6 +97,8 @@ def validate_question(q, block_id, errors):
         if not (isinstance(v, dict) and set(v) == {"by", "at"}
                 and isinstance(v["by"], str) and isinstance(v["at"], str) and DATE_RE.match(v["at"])):
             err("verified: {by, at: YYYY-MM-DD}")
+    if "core" in q and q["core"] is not True:
+        err("core: только true (не ядро — поле не пишут)")
     if "java_version" in q and not isinstance(q["java_version"], str):
         err("java_version: строка")
 
@@ -176,19 +178,29 @@ def load_all():
     for f in DATA.glob("*.json"):
         if f.name != "blocks.json" and f.stem not in seen_blocks:
             errors.append(f"{f.name}: блока нет в blocks.json")
+    theory = {}
+    for f in sorted((DATA / "theory").glob("*.md")):
+        if f.stem not in seen_blocks:
+            errors.append(f"theory/{f.name}: блока нет в blocks.json")
+        elif not f.read_text(encoding="utf-8").strip():
+            errors.append(f"theory/{f.name}: пустой файл")
+        else:
+            theory[f.stem] = f.read_text(encoding="utf-8")
     blocks.sort(key=lambda b: b.get("order", 0))
-    return blocks, questions, errors
+    return blocks, questions, theory, errors
 
 
-def report(blocks, questions):
+def report(blocks, questions, theory):
     for b in blocks:
         qs = [q for q in questions if q["block"] == b["id"]]
         types = Counter(q["type"] for q in qs)
         topics = Counter(q["topic"] for q in qs)
         ver = sum(1 for q in qs if "verified" in q)
+        core = sum(1 for q in qs if q.get("core"))
         print(f"{b['icon']} {b['id']}: {len(qs)} вопр. | "
               + ", ".join(f"{k}={v}" for k, v in sorted(types.items()))
-              + f" | verified {ver}/{len(qs)}")
+              + f" | verified {ver}/{len(qs)} | ядро {core}"
+              + (" | теория" if b["id"] in theory else ""))
         for t, n in sorted(topics.items(), key=lambda x: -x[1]):
             print(f"    {n:2d}  {t}")
 
@@ -242,8 +254,8 @@ ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 """
 
 
-def build(blocks, questions):
-    payload = {"blocks": blocks, "questions": questions}
+def build(blocks, questions, theory):
+    payload = {"blocks": blocks, "questions": questions, "theory": theory}
     data_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     data_json = data_json.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
@@ -271,15 +283,15 @@ def build(blocks, questions):
 
 
 def main():
-    blocks, questions, errors = load_all()
+    blocks, questions, theory, errors = load_all()
     if errors:
         print("ОШИБКИ ВАЛИДАЦИИ:")
         for e in errors:
             print("  -", e)
         sys.exit(1)
-    report(blocks, questions)
+    report(blocks, questions, theory)
     if "--check" not in sys.argv:
-        build(blocks, questions)
+        build(blocks, questions, theory)
 
 
 if __name__ == "__main__":

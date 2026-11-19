@@ -6,6 +6,7 @@
     "topic": "Контракт compareTo",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "`Comparable` или `Comparator`: что выбрать и когда?",
     "answer_text": "- `Comparable` — **натуральный** порядок, ровно один, зашит в сам класс. Его берут по умолчанию `TreeSet`/`TreeMap`, `Collections.sort`, `List.sort(null)`, `sorted()`, `PriorityQueue`. Примеры: `String`, `Integer`, `LocalDate`, `BigDecimal`.\n- Делать класс `Comparable` стоит, только если порядок очевиден всем (числа, даты, версии). Для `User` «натурального» порядка нет: по имени, по возрасту, по дате регистрации — всё это `Comparator`.\n- `Comparator` — внешний порядок: их может быть сколько угодно, работает для чужих классов (которые нельзя изменить), собирается из готовых кусков (`comparing`, `thenComparing`, `reversed`, `nullsFirst`).\n- Натуральный порядок желательно согласовать с `equals` (`compareTo == 0` ⇔ `equals`), иначе `TreeSet` и `HashSet` разойдутся. `BigDecimal` — известное исключение.\n- Запись (`record`) сама `Comparable` не становится. Удобно реализовать `compareTo` через `private static final Comparator`.",
     "explanation": "Ключ: натуральный порядок один и принадлежит классу; все остальные порядки — компараторы снаружи.",
@@ -54,6 +55,7 @@
     "topic": "Контракт compareTo",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -131,6 +133,7 @@
     "topic": "Контракт compareTo",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -304,6 +307,7 @@
     "topic": "Контракт compareTo",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "В проде `list.sort(cmp)` иногда падает: `IllegalArgumentException: Comparison method violates its general contract!` Что это значит?",
     "options": [
       "Компаратор нарушает контракт (например, нетранзитивен или для одной пары отвечает по-разному), и сортировка это заметила",
@@ -336,6 +340,7 @@
     "topic": "Контракт compareTo",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Порядок не согласован с `equals` (`compare == 0`, но `equals == false`). Что сломается, а что нет?",
     "answer_text": "- **Работает**: сортировка списков и массивов, `PriorityQueue`, `binarySearch` по тому же компаратору. Им нужен только порядок.\n- **Ломается** всё, что определяет равенство через `compare`: `TreeSet`/`TreeMap`. Элементы с `compare == 0` считаются одним: второй молча не добавляется (`BigDecimal` `1.0` и `1.00`, 5.3), `contains`/`get`/`remove` находят «чужой» объект.\n- Нарушается контракт `Set`/`Map`, сформулированный через `equals`: `treeSet.equals(hashSet)` несимметричен (5.8), копия `HashSet` → `TreeSet` теряет элементы (`{\"a\", \"A\"}` с `CASE_INSENSITIVE_ORDER` → один).\n- Самый частый баг в проде: `new TreeSet<>(comparingInt(User::getAge))` — пользователи одного возраста схлопываются в одного. Лечится tie-breaker'ом: `.thenComparing(User::getId)`, чтобы `0` означало «тот же объект».\n- Известные несогласованные: `BigDecimal`, `String.CASE_INSENSITIVE_ORDER`, любой компаратор не по всем полям `equals`.",
     "explanation": "Ключ: деревья не знают `equals` — для них `compare == 0` и есть равенство.",
@@ -362,6 +367,7 @@
     "topic": "Реализация compareTo",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -404,6 +410,7 @@
     "topic": "Реализация compareTo",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -446,6 +453,7 @@
     "topic": "Реализация compareTo",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -605,6 +613,7 @@
     "topic": "Реализация compareTo",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Почему компаратор через вычитание — плохая идея, и как правильно писать `compareTo` по нескольким полям?",
     "answer_text": "- `a - b` переполняется: `Integer.MIN_VALUE - 1` даёт положительное число, и минимум оказывается «больше» единицы (5.11). Для `long` хуже: `(int) (a - b)` ещё и отрезает старшие биты. Для `double`: `(int) (0.5 - 0.2)` = `0`, а `NaN` всё портит.\n- Правильно: `Integer.compare`, `Long.compare`, `Double.compare`, `Boolean.compare`, `compareTo` для объектов.\n- Несколько полей: вернуть результат первого ключа, если он не `0`, иначе сравнивать следующий. Не складывать результаты (5.12).\n- Удобно: `private static final Comparator<T> ORDER = comparing(T::last).thenComparing(T::first).thenComparingInt(T::age);` и `compareTo` делегирует ему. Компаратор — константа, а не создаётся на каждый вызов.\n- Сравнивать по тем же полям, что и `equals`, тогда порядок с ним согласован. Поля, где бывает `null`, — через `nullsFirst`/`nullsLast`.",
     "explanation": "Ключ: важен только знак, поэтому сравнивать, а не вычитать; ключи — по очереди, а не суммой.",
@@ -657,6 +666,7 @@
     "topic": "Comparator API",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -700,6 +710,7 @@
     "topic": "Comparator API",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -768,6 +779,7 @@
     "topic": "Comparator API",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "У части пользователей `getCity()` возвращает `null` (имя — всегда не `null`). Какой компаратор отсортирует по городу (`null` в конце), а внутри города — по имени, без NPE?",
     "options": [
       "`Comparator.comparing(User::getCity, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(User::getName)`",
@@ -1039,6 +1051,7 @@
     "topic": "Comparator API",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Напиши компаратор для `Employee`: отдел (`String getDepartment()`, бывает `null`, такие — в конце) по алфавиту, внутри — зарплата (`long getSalary()`) по убыванию, при равенстве — `long getId()`.",
     "answer_text": "`Comparator.comparing(Employee::getDepartment, Comparator.nullsLast(Comparator.naturalOrder()))`\n`    .thenComparing(Comparator.comparingLong(Employee::getSalary).reversed())`\n`    .thenComparingLong(Employee::getId)`\n\n- `nullsLast` — вторым аргументом `comparing`: `null` бывает у ключа, а не у самого `Employee` (5.22).\n- `reversed()` — только у вложенного компаратора зарплаты, иначе развернётся вся цепочка (5.20).\n- `comparingLong`/`thenComparingLong` — без упаковки.\n- `id` в конце делает порядок полным: `0` только у одного и того же сотрудника, такой компаратор безопасен для `TreeSet`.\n- Хранить в `static final` поле, а не собирать на каждый вызов.",
     "explanation": "Ключ: null-обработка и разворот — на уровне конкретного ключа, а не всей цепочки; в конце — уникальный tie-breaker.",
@@ -1270,6 +1283,7 @@
     "topic": "Сортировка и коллекции",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Заказы уже отсортированы по дате. Вызываем `orders.sort(Comparator.comparing(Order::status))`. Что будет с порядком по дате внутри одного статуса?",
     "options": [
       "Сохранится: `List.sort` гарантированно стабилен",
@@ -1343,6 +1357,7 @@
     "topic": "Сортировка и коллекции",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -1412,6 +1427,7 @@
     "topic": "Сортировка и коллекции",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Из потока на миллиарды чисел нужно держать 100 наибольших. Какой подход правильный?",
     "options": [
       "`PriorityQueue` в натуральном порядке (min-куча): `offer`, и если размер стал 101 — `poll()`",

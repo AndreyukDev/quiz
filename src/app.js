@@ -2,6 +2,7 @@
 'use strict';
 
 const {blocks, questions} = window.QUIZ;
+const theory = window.QUIZ.theory || {};
 const VERSION = window.QUIZ_VERSION || 'dev';
 const app = document.getElementById('app');
 
@@ -9,7 +10,8 @@ const app = document.getElementById('app');
 const KEY = 'quiz.v1';
 const DAY = 86400000;
 // интервал по номеру коробки (дни); 1-я — каждую сессию
-const INTERVAL_DAYS = [0, 0, 3, 7, 14, 30];
+const INTERVAL_DAYS = [0, 0, 3, 7, 14, 30, 90, 180];
+const MAX_BOX = INTERVAL_DAYS.length - 1;
 const SIZES = [5, 10, 12, 15, 20];
 
 function defaults() { return {progress: {}, settings: {size: 12, pick: null}}; }
@@ -38,7 +40,7 @@ function grade(q, res) {
   const now = Date.now();
   const p = store.progress[q.id] || {b: 0, n: 0, w: 0};
   const cur = Math.max(1, p.b);
-  const box = res === 'ok' ? Math.min(5, cur + 1) : res === 'bad' ? 1 : cur;
+  const box = res === 'ok' ? Math.min(MAX_BOX, cur + 1) : res === 'bad' ? 1 : cur;
   store.progress[q.id] = {b: box, d: dueFor(box, now), n: p.n + 1, w: p.w + (res === 'bad' ? 1 : 0), l: now};
   save();
 }
@@ -52,17 +54,28 @@ function shuffle(a) {
 const blockById = new Map(blocks.map(b => [b.id, b]));
 const codeText = c => Array.isArray(c.text) ? c.text.join('\n') : c.text;
 
+// жирный применяется поверх кода: **текст `код` текст** работает
 function inline(s) {
   return s.split(/(`[^`\n]+`)/).map(part =>
     part.length > 1 && part[0] === '`' && part[part.length - 1] === '`'
-      ? `<code>${esc(part.slice(1, -1))}</code>`
-      : esc(part).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-  ).join('');
+      ? `<code>${esc(part.slice(1, -1)).replace(/\*/g, '&#42;')}</code>`
+      : esc(part)
+  ).join('').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 }
 // мини-markdown: каждая строка — абзац, строки "- " — список, `код`, **жирный**
+// в теории ещё: "## заголовок" и блоки ```lang … ```
 function md(text) {
-  let html = '', list = false;
+  let html = '', list = false, fence = null;
   for (const line of text.trim().split('\n')) {
+    if (fence) {
+      if (/^```\s*$/.test(line)) { html += `<pre class="code">${highlight(fence.lines.join('\n'), fence.lang)}</pre>`; fence = null; }
+      else fence.lines.push(line);
+      continue;
+    }
+    const f = line.match(/^```(\w*)\s*$/);
+    if (f) { if (list) { html += '</ul>'; list = false; } fence = {lang: f[1], lines: []}; continue; }
+    const h = line.match(/^##\s+(.*)$/);
+    if (h) { if (list) { html += '</ul>'; list = false; } html += `<h3>${inline(h[1])}</h3>`; continue; }
     const m = line.match(/^\s*[-•]\s+(.*)$/);
     if (m) { if (!list) { html += '<ul>'; list = true; } html += `<li>${inline(m[1])}</li>`; continue; }
     if (list) { html += '</ul>'; list = false; }
@@ -155,6 +168,7 @@ function go(hash) { if (location.hash === hash) render(); else location.hash = h
 function render() {
   const h = location.hash || '#/';
   if (h === '#/q') renderQuiz();
+  else if (h.startsWith('#/b/') && blockById.has(h.slice(4))) renderBlock(h.slice(4));
   else if (h === '#/stats') renderStats();
   else if (h === '#/backup') renderBackup();
   else renderHome();
@@ -175,9 +189,10 @@ function picked() {
 }
 function counts(qs) {
   const now = Date.now();
-  const c = {total: qs.length, fresh: 0, due: 0, learned: 0, next: null, boxes: [0, 0, 0, 0, 0, 0], n: 0, w: 0};
+  const c = {total: qs.length, fresh: 0, due: 0, learned: 0, next: null, boxes: new Array(MAX_BOX + 1).fill(0), n: 0, w: 0, core: 0};
   for (const q of qs) {
     const p = P(q);
+    if (q.core) c.core++;
     if (!p) { c.fresh++; c.boxes[0]++; continue; }
     c.boxes[p.b]++; c.n += p.n; c.w += p.w;
     if (p.b >= 4) c.learned++;
@@ -188,23 +203,26 @@ function counts(qs) {
 }
 
 let session = null;
+const coreOf = qs => qs.filter(q => q.core);
 // random: случайные карточки из выбранных блоков без учёта расписания; ответы всё равно двигают коробки
-function startSession(blockId, early = false, random = false) {
+// core: только вопросы ядра
+function startSession(blockId, early = false, random = false, core = false) {
   const now = Date.now(), size = store.settings.size;
+  const pool = core ? coreOf(blockQuestions(blockId)) : blockQuestions(blockId);
   if (random) {
-    session = {blockId, items: shuffle(blockQuestions(blockId).slice()).slice(0, size), i: 0, state: [], early, random};
+    session = {blockId, items: shuffle(pool.slice()).slice(0, size), i: 0, state: [], early, random, core};
     go('#/q');
     return;
   }
   const due = [], fresh = [], later = [];
-  for (const q of blockQuestions(blockId)) {
+  for (const q of pool) {
     const p = P(q);
     if (!p) fresh.push(q); else if (p.d <= now) due.push(q); else later.push(q);
   }
   due.sort((a, b) => P(a).b - P(b).b || P(a).d - P(b).d);
   let items = due.concat(shuffle(fresh)).slice(0, size);
   if (!items.length && early) items = later.sort((a, b) => P(a).d - P(b).d).slice(0, size);
-  session = {blockId, items: shuffle(items), i: 0, state: [], early};
+  session = {blockId, items: shuffle(items), i: 0, state: [], early, core};
   go('#/q');
 }
 
@@ -223,6 +241,7 @@ function renderHome() {
   view(`<div class="fade">
     <h1>Теория в тонусе</h1>
     <button class="btn primary" data-act="mix">Микс недели · ${Math.min(store.settings.size, all.due + all.fresh) || 'всё повторено'}</button>
+    ${all.core ? `<button class="btn" data-act="mixcore" style="text-align:center">★ Микс недели · только ядро</button>` : ''}
     <p class="muted">К повторению: ${all.due} · новых: ${all.fresh} · выучено: ${all.learned} из ${all.total}</p>
     <h2>Блоки</h2>${blockRows}
     <div class="card"><div class="muted" style="margin-bottom:8px">Случайный режим: вопросы вперемешку из отмеченных разделов, без учёта расписания</div>
@@ -233,7 +252,8 @@ function renderHome() {
     <div class="row"><button class="btn ghost" data-act="stats">📊 Статистика</button><button class="btn ghost" data-act="backup">💾 Копия</button></div>
     <p class="muted" style="text-align:center">версия ${esc(VERSION)}</p></div>`, {
     mix: () => startSession(null),
-    block: el => startSession(el.dataset.id),
+    mixcore: () => startSession(null, false, false, true),
+    block: el => go('#/b/' + el.dataset.id),
     toggle: el => {
       const id = el.dataset.id, cur = picked();
       store.settings.pick = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id);
@@ -269,9 +289,10 @@ function renderQuiz() {
   view(`<div class="top"><button class="x" data-act="quit" aria-label="Выйти">✕</button>
       <button class="nav" data-act="prev" aria-label="Назад"${s.i ? '' : ' disabled'}>‹</button>
       <div class="bar"><i style="width:${s.i / s.items.length * 100}%"></i></div><div class="count">${s.i + 1}/${s.items.length}</div>
-      <button class="nav" data-act="next" aria-label="Вперёд">›</button></div>
+      <button class="nav" data-act="next" aria-label="Вперёд">›</button>
+      ${theory[q.block] ? '<button class="nav" data-act="theory" aria-label="Теория раздела">📖</button>' : ''}</div>
     <section class="card fade">
-      <div class="topic">${b ? esc(b.icon) + ' ' : ''}<b>${esc(q.num)}</b> · ${esc(q.topic)} · ${TYPE_LABEL[q.type]}</div>
+      <div class="topic">${b ? esc(b.icon) + ' ' : ''}<b>${esc(q.num)}</b>${q.core ? ' · <span class="core">★ ядро</span>' : ''} · ${esc(q.topic)} · ${TYPE_LABEL[q.type]}</div>
       <div class="q">${md(q.question)}</div>
       ${q.code ? codeBlock(q) : ''}
       <div id="opts">${opts}</div>
@@ -284,6 +305,7 @@ function renderQuiz() {
     rate: el => { if (st.res) return; st.res = el.dataset.r; grade(q, st.res); next(); },
     prev: () => prev(),
     next: () => next(),
+    theory: () => openTheory(q.block),
   }, e => {
     if (e.key === 'ArrowLeft') { e.preventDefault(); return prev(); }
     if (e.key === 'ArrowRight') { e.preventDefault(); return next(); }
@@ -356,7 +378,7 @@ function renderEmpty() {
       <p class="muted">Ближайшее повторение: ${fmtDue(c.next)}</p>
       <button class="btn primary" data-act="early">Повторить досрочно</button>
       <button class="btn ghost" data-act="home">Домой</button></div>`, {
-    early: () => startSession(session.blockId, true),
+    early: () => startSession(session.blockId, true, false, session.core),
     home: () => { session = null; go('#/'); },
   });
 }
@@ -376,13 +398,44 @@ function renderDone() {
     <button class="btn primary" data-act="again">Ещё сессия</button>
     <button class="btn ghost" data-act="home">Домой</button>`, {
     back: () => { session.i = session.items.findIndex((_, i) => !(session.state[i] && session.state[i].res)); render(); window.scrollTo(0, 0); },
-    again: () => startSession(session.blockId, false, session.random),
+    again: () => startSession(session.blockId, false, session.random, session.core),
     home: () => { session = null; go('#/'); },
-  }, e => { if (e.key === 'Enter') { e.preventDefault(); startSession(session.blockId, false, session.random); } });
+  }, e => { if (e.key === 'Enter') { e.preventDefault(); startSession(session.blockId, false, session.random, session.core); } });
 }
 
-const BOX_COLORS = ['var(--line)', 'var(--bad)', '#f97316', '#eab308', '#84cc16', 'var(--ok)'];
-const BOX_NAMES = ['новые', 'коробка 1', '2', '3', '4', '5'];
+function renderBlock(id) {
+  const b = blockById.get(id), qs = blockQuestions(id), c = counts(qs), cc = counts(coreOf(qs));
+  const label = x => x.due ? `к повторению ${x.due}` : x.fresh ? `новых ${x.fresh}` : `всё повторено, дальше ${fmtDue(x.next)}`;
+  view(`<div class="fade"><div class="top"><button class="x" data-act="home" aria-label="Назад">←</button><h1 style="margin:0">${esc(b.icon)} ${esc(b.title)}</h1></div>
+    <div class="card"><span class="muted">${c.total} карт. · ядро ${c.core} · выучено ${c.learned}</span>${boxesBar(c)}</div>
+    <button class="btn primary" data-act="all">Все вопросы · ${label(c)}</button>
+    ${c.core ? `<button class="btn" data-act="core" style="text-align:center">★ Только ядро · ${cc.total} карт. · ${label(cc)}</button>` : ''}
+    ${theory[id] ? `<button class="btn" data-act="theory" style="text-align:center">📖 Теория раздела</button>` : ''}</div>`, {
+    home: () => go('#/'),
+    all: () => startSession(id),
+    core: () => startSession(id, false, false, true),
+    theory: () => openTheory(id),
+  });
+}
+
+// теория раздела — поверх текущего экрана, сессия не сбрасывается
+function openTheory(id) {
+  const b = blockById.get(id);
+  const el = document.createElement('div');
+  el.className = 'sheet';
+  el.innerHTML = `<div class="sheet-body fade"><div class="top"><button class="x" data-close aria-label="Закрыть">✕</button><h1 style="margin:0">📖 ${esc(b.title)}</h1></div>
+    <div class="theory">${md(theory[id])}</div>
+    <button class="btn primary" data-close>Закрыть</button></div>`;
+  const prevKeys = keys;
+  const close = () => { el.remove(); keys = prevKeys; document.body.style.overflow = ''; };
+  el.addEventListener('click', e => { if (e.target === el || e.target.closest('[data-close]')) close(); });
+  keys = e => { if (e.key === 'Escape') close(); };
+  document.body.appendChild(el);
+  document.body.style.overflow = 'hidden';
+}
+
+const BOX_COLORS = ['var(--line)', 'var(--bad)', '#f97316', '#eab308', '#84cc16', 'var(--ok)', '#0d9488', '#2563eb'];
+const BOX_NAMES = ['новые', 'коробка 1', '2', '3', '4', '5', '6', '7'];
 function boxesBar(c) {
   return `<div class="boxes">${c.boxes.map((n, i) => n ? `<i style="width:${n / c.total * 100}%;background:${BOX_COLORS[i]}"></i>` : '').join('')}</div>`;
 }
@@ -405,7 +458,7 @@ function renderStats() {
     const acc = c.n ? Math.round((1 - c.w / c.n) * 100) + '%' : '—';
     return `<div class="card"><div class="title" style="font-weight:600">${esc(b.icon)} ${esc(b.title)}</div>
       ${boxesBar(c)}
-      <table><tr><th>выучено (4–5)</th><td class="n">${c.learned}/${c.total}</td></tr>
+      <table><tr><th>выучено (4–7)</th><td class="n">${c.learned}/${c.total}</td></tr>
       <tr><th>к повторению сейчас</th><td class="n">${c.due}</td></tr>
       <tr><th>новых</th><td class="n">${c.fresh}</td></tr>
       <tr><th>точность ответов</th><td class="n">${acc}</td></tr>
