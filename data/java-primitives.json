@@ -32,6 +32,7 @@
     "topic": "Примитивы и операторы",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Какие строки не скомпилируются?",
     "code": {
       "lang": "java",
@@ -116,6 +117,7 @@
     "topic": "Примитивы и операторы",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -204,6 +206,7 @@
     "topic": "Примитивы и операторы",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -300,6 +303,7 @@
     "topic": "double и BigDecimal",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -466,6 +470,7 @@
     "topic": "double и BigDecimal",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Почему деньги не хранят в `double` и как делать правильно?",
     "answer_text": "- `double` — двоичная плавающая точка: `0.1` хранится приближённо, суммы копят ошибку, `0.1 + 0.2 != 0.3`. Для отчётов и сверок это расхождения на копейки.\n- **`BigDecimal`**: создавать из строки или `BigDecimal.valueOf`, не `new BigDecimal(double)`. Масштаб и `RoundingMode` задавать явно (`HALF_EVEN` — банковское, `HALF_UP` — «школьное», выбирает бизнес). Сравнивать через `compareTo`, не `equals` (масштаб).\n- **`long` в минорных единицах** (копейки): быстро и просто, но число знаков зависит от валюты (JPY — 0, BHD — 3, см. `Currency.getDefaultFractionDigits`), а умножение на курс или процент всё равно требует правила округления.\n- В БД — `NUMERIC(p, s)`, не `float`/`double precision`. Сумму хранят вместе с валютой.",
     "explanation": "Основное: двоичная дробь не представляет точно `0.1`, ошибки накапливаются и вылезают при округлении и сравнении.",

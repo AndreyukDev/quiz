@@ -6,6 +6,7 @@
     "topic": "Автораспаковка и NPE",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -54,6 +55,7 @@
     "topic": "Автораспаковка и NPE",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -172,6 +174,7 @@
     "topic": "Автораспаковка и NPE",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -259,6 +262,7 @@
     "topic": "Кеш Integer",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код (JVM без доп. флагов)?",
     "code": {
       "lang": "java",

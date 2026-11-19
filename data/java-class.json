@@ -98,6 +98,7 @@
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Переменная объявлена как `Dog dog`. Какой статический тип у выражения `dog.getClass()`?",
     "options": [
       "`Class<Dog>`",
@@ -171,6 +172,7 @@
     "topic": "Class, getClass и instanceof",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает программа?",
     "code": {
       "lang": "java",
@@ -255,6 +257,7 @@
     "topic": "Class, getClass и instanceof",
     "type": "output",
     "level": "middle",
+    "core": true,
     "question": "Что напечатает программа?",
     "code": {
       "lang": "java",
@@ -352,6 +355,7 @@
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "`equals` в JPA-сущности `User` начинается с `if (o == null || getClass() != o.getClass()) return false;`. `user` загружен в одной сессии (теперь отсоединён), а `proxy` — ленивый прокси той же записи из другой сессии (`getReference` или связь, Hibernate). Что вернёт `user.equals(proxy)`?",
     "options": [
       "`true`: прокси делегирует `getClass()` настоящей сущности",

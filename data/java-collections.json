@@ -38,6 +38,7 @@
     "topic": "HashMap и ConcurrentHashMap",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -83,6 +84,7 @@
     "topic": "HashMap и ConcurrentHashMap",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Почему ёмкость `HashMap` всегда степень двойки и зачем `hash()` делает `h ^ (h >>> 16)`?",
     "answer_text": "Индекс бакета — `(n - 1) & hash`: это дешевле `%` и корректно только при `n` = 2^k. Но тогда индекс зависит лишь от младших битов хеша, и ключи, хеши которых различаются только старшими битами, сыпались бы в один бакет. Поэтому `hash()` подмешивает старшие 16 бит в младшие.\n\nБонус при resize: ёмкость удваивается, и каждый узел либо остаётся на индексе `i`, либо переезжает на `i + oldCap` — решает один бит `hash & oldCap`. Хеши не пересчитываются, цепочка делится на две с сохранением порядка.",
     "explanation": "Ключевое: `&` вместо `%` → важны только младшие биты → их надо «перемешать» со старшими. И дешёвый resize.",
@@ -105,6 +107,7 @@
     "topic": "HashMap и ConcurrentHashMap",
     "type": "tf",
     "level": "senior",
+    "core": true,
     "question": "`ConcurrentHashMap`, как и `HashMap`, допускает один `null`-ключ и `null`-значения.",
     "answer": false,
     "explanation": "`ConcurrentHashMap` запрещает `null` и в ключах, и в значениях — будет NPE (как и в `Hashtable`).\nПричина, которую называет Дуг Ли (автор класса), — двусмысленность: в `HashMap` ответ `get(k) == null` можно уточнить через `containsKey`, а в конкурентной мапе между двумя вызовами состояние может измениться. Без null ответ `null` из `get` однозначно значит «ключа нет».",
@@ -131,6 +134,7 @@
     "topic": "HashMap и ConcurrentHashMap",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Какова сложность `get` в `HashMap` (Java 8+)?",
     "options": [
       "O(1) в среднем; при коллизиях в бакете — O(log n) (дерево), для не-`Comparable` ключей с равными хешами — до O(n)",
@@ -258,6 +262,7 @@
     "topic": "ConcurrentModification",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Идёт обход `for (var e : map.entrySet())` по `HashMap`. Какая операция в теле цикла **не** является структурной модификацией и не ломает итератор?",
     "options": [
       "`map.put(k, v)`, где ключ `k` уже есть в мапе",
@@ -335,6 +340,7 @@
     "topic": "Неизменяемые коллекции и виды",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -471,6 +477,7 @@
     "topic": "Неизменяемые коллекции и виды",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Сравни `List.of(...)`, `Arrays.asList(...)`, `Collections.unmodifiableList(...)`, `stream.toList()` и `collect(Collectors.toList())`: изменяемость, `null`, связь с источником.",
     "answer_text": "- `List.of` / `List.copyOf` — полностью неизменяемы, `null` запрещён (даже `contains(null)` → NPE), от источника не зависят; value-based — на `==` не полагаться.\n- `Arrays.asList` — фиксированный размер поверх массива: `set` можно (пишет в массив), `add`/`remove` → UOE, `null` можно.\n- `Collections.unmodifiableList` — вид только для чтения; изменения исходного списка видны.\n- `stream.toList()` (16+) — неизменяемый, но `null`-элементы допускает.\n- `Collectors.toList()` — тип, изменяемость и потокобезопасность не гарантированы (на практике `ArrayList`).",
     "explanation": "Чаще всего путают «вид» и «копию» и забывают, что `List.of` враждебен к `null` даже в `contains`.",
@@ -501,6 +508,7 @@
     "topic": "Копирование и toArray",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -673,6 +681,7 @@
     "topic": "Неизменяемые коллекции и виды",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Тест проверяет `assertEquals(\"[a, b, c]\", Set.of(\"a\", \"b\", \"c\").toString())`. Как он себя поведёт на JDK 21?",
     "options": [
       "Будет то проходить, то падать: порядок обхода `Set.of` / `Map.of` меняется от запуска JVM к запуску",
@@ -1116,6 +1125,7 @@
     "topic": "Выбор коллекции",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -1161,6 +1171,7 @@
     "topic": "Выбор коллекции",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -1231,6 +1242,7 @@
     "topic": "Выбор коллекции",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Почему `LinkedList` на практике почти никогда не выигрывает у `ArrayList`, хотя вставка в середину у него O(1)?",
     "answer_text": "- O(1) вставка у `LinkedList` — только когда узел уже найден (через `ListIterator`). Найти позицию по индексу — O(n) обход узлов.\n- Каждый элемент — отдельный объект `Node` (заголовок + три ссылки `item`/`next`/`prev`, порядка 24–32 байт) против одной ссылки (4–8 байт) в массиве `ArrayList`: в разы больше памяти и работы для GC.\n- Узлы разбросаны по куче — промахи кэша процессора. `ArrayList` сдвигает элементы одним `System.arraycopy` по непрерывной памяти, и на практике это быстро до весьма больших размеров.\n- Честный плюс `LinkedList` — операции на концах: удаление из головы у `ArrayList` O(n), у `LinkedList` O(1). Но для очереди или стека есть `ArrayDeque` — тоже O(1) на концах и компактнее (зато не принимает `null`); javadoc прямо говорит, что как очередь он, скорее всего, быстрее `LinkedList`.\n- Остаётся узкий случай: много вставок и удалений через итератор посреди большого списка — и то стоит мерить.",
     "explanation": "Ключевое: O(1) только при уже найденном узле, а поиск — O(n) по разрозненной памяти; для очереди есть `ArrayDeque`.",

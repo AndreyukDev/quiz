@@ -6,6 +6,7 @@
     "topic": "Enum",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -48,6 +49,7 @@
     "topic": "Enum",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Статус заказа хранится в БД как `ordinal()` (так по умолчанию делает JPA `@Enumerated`). В enum `NEW, PAID, SHIPPED` добавили `CANCELLED` между `NEW` и `PAID`. Что будет со старыми строками?",
     "options": [
       "Старые `PAID` прочитаются как `CANCELLED`, `SHIPPED` — как `PAID`, и без всякой ошибки",
@@ -212,6 +214,7 @@
     "topic": "Enum",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Почему enum сравнивают через `==`, а не `equals`? (`color` имеет тип `Color`, `Size` — другой enum)",
     "options": [
       "`equals` у enum не переопределён и сравнивает `ordinal()`",

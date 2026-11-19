@@ -6,6 +6,7 @@
     "topic": "Пул строк и ==",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -108,6 +109,7 @@
     "topic": "Пул строк и ==",
     "type": "mcq",
     "level": "middle",
+    "core": true,
     "question": "`if (order.getStatus() == \"PAID\") ship(order);` В юнит-тесте с `new Order(\"PAID\")` заказ отгружается, а в проде, где статус пришёл из БД, — никогда. Почему?",
     "options": [
       "JDBC-драйвер переводит строки в верхний регистр",

@@ -6,6 +6,7 @@
     "topic": "Исключения",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает программа?",
     "code": {
       "lang": "java",
@@ -68,6 +69,7 @@
     "topic": "Исключения",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",
@@ -116,6 +118,7 @@
     "topic": "Исключения",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",

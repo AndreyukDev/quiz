@@ -6,6 +6,7 @@
     "topic": "Контракт equals и hashCode",
     "type": "mcq",
     "level": "middle",
+    "core": true,
     "question": "Что **не** входит в контракт `Object.equals`?",
     "options": [
       "Рефлексивность: `x.equals(x)` — `true`",
@@ -157,6 +158,7 @@
     "topic": "Контракт equals и hashCode",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает программа? (`hashCode` не переопределён)",
     "code": {
       "lang": "java",
@@ -299,6 +301,7 @@
     "topic": "Контракт equals и hashCode",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "`instanceof` или `getClass()` в `equals`: в чём компромисс и что ломается с наследниками?",
     "answer_text": "`instanceof` допускает равенство с наследником. Если наследник добавил своё поле в `equals`, ломается симметрия (`base.equals(sub)` — true, `sub.equals(base)` — false) или транзитивность. Расширить инстанцируемый класс значимым полем и сохранить контракт `equals` в общем случае нельзя (Блох, Effective Java, Item 10).\n\n`getClass() != o.getClass()` контракт сохраняет, но ломает подстановку: прокси (Hibernate, Mockito) и безобидные наследники без новых полей перестают быть равными базовому классу.\n\nПрактика: value-классы делать `final` или `record` и использовать `instanceof`; для расширения — композиция вместо наследования; для JPA-сущностей помнить о прокси.",
     "explanation": "Ключевое: наследник с новым значимым полем несовместим с контрактом `equals` (симметрия/транзитивность), а `getClass()` платит за это подстановкой Лисков и прокси.",
@@ -440,6 +443,7 @@
     "topic": "null-безопасное сравнение",
     "type": "mcq",
     "level": "middle",
+    "core": true,
     "question": "`String s = null;` Какое выражение бросит `NullPointerException`?",
     "options": [
       "`\"PAID\".equals(s)`",
@@ -515,6 +519,7 @@
     "topic": "Массивы и equals",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что напечатает код?",
     "code": {
       "lang": "java",

@@ -6,6 +6,7 @@
     "topic": "Вариантность и PECS",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Какие строки компилируются, и что будет при выполнении (4)?",
     "code": {
       "lang": "java",
@@ -49,6 +50,7 @@
     "topic": "Вариантность и PECS",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Нужен метод, копирующий элементы из `src` в `dst`, чтобы работал вызов с `List<Number> dst` и `List<Integer> src`. Какая сигнатура правильная?",
     "options": [
       "`<T> void copy(List<? super T> dst, List<? extends T> src)`",
@@ -298,6 +300,7 @@
     "topic": "Стирание типов",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Почему нельзя написать `new T[n]` или `new List<String>[10]`, а `new List<?>[10]` можно?",
     "answer_text": "Массивы ковариантны и реифицированы: массив знает тип своего компонента и при записи проверяет его (`ArrayStoreException`). Дженерики стираются: `List<String>` в рантайме — просто `List`, проверить запись в `List<String>[]` нельзя.\n\nЕсли бы создание было разрешено, через `Object[] arr = lists; arr[0] = List.of(42);` в массив «строковых» списков молча попал бы чужой список — heap pollution без единого предупреждения. Поэтому JLS разрешает создавать массивы только реифицируемых типов. `List<?>` реифицируем: unbounded wildcard ничего не обещает. `T` в рантайме неизвестен вовсе.\n\nОбходы: `(T[]) new Object[n]` (unchecked, наружу не отдавать), `Array.newInstance(clazz, n)`, `List<T>` вместо массива.",
     "explanation": "Ключевое: массивы реифицированы и проверяют запись в рантайме, а дженерики стёрты — проверить нечем.",
@@ -458,6 +461,7 @@
     "topic": "Стирание типов",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Типы-аргументы стираются. Как тогда Jackson (`TypeReference`) и Spring (`ParameterizedTypeReference`) узнают, что нужен именно `List<User>`?",
     "answer_text": "- В рантайме объект `ArrayList<User>` ничего не знает про `User`, а вот **объявления** сохраняют параметризованные типы в атрибуте `Signature` class-файла: суперкласс, интерфейсы, типы полей, параметры и возврат методов.\n- `new TypeReference<List<User>>() {}` — это анонимный **подкласс**, в объявлении которого суперкласс записан как `TypeReference<List<User>>`. `getClass().getGenericSuperclass()` возвращает `ParameterizedType`, из него достают `List<User>`.\n- Поэтому важны фигурные скобки `{}`: без подкласса информации нет. Тот же приём называют super type token (Gafter).\n- Альтернатива без подклассов — передавать `Class<T>` или фабрику, но для вложенных параметризованных типов `Class` недостаточно.",
     "explanation": "Ключ: стираются типы переменных и объектов, но не объявления классов, полей и методов.",
@@ -484,6 +488,7 @@
     "topic": "Стирание типов",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Нужно отобрать из `List<?>` элементы типа `T`. Какая реализация компилируется и работает правильно?",
     "options": [
       "`<T> List<T> pick(List<?> src)` с проверкой `if (o instanceof T) r.add((T) o);`",
@@ -592,6 +597,7 @@
     "topic": "Heap pollution и varargs",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -989,6 +995,7 @@
     "topic": "Вариантность и PECS",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Что верно?",
     "code": {
       "lang": "java",
@@ -1165,6 +1172,7 @@
     "topic": "Проектирование API",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "В каком из методов параметр типа `<T>` стоит заменить wildcard'ом?",
     "options": [
       "`static <T> int countNulls(List<T> list)`",
@@ -1197,6 +1205,7 @@
     "topic": "Проектирование API",
     "type": "mcq",
     "level": "senior",
+    "core": true,
     "question": "Метод сервиса объявлен как `List<? extends Number> loadAmounts()`. Что с этим не так?",
     "options": [
       "Wildcard достаётся каждому вызывающему: в список ничего не добавить, и его не передать в метод, ждущий `List<Number>`. Гибкость нужна в параметрах, а не в возврате",
@@ -1229,6 +1238,7 @@
     "topic": "Вывод типов",
     "type": "output",
     "level": "senior",
+    "core": true,
     "question": "Что произойдёт?",
     "code": {
       "lang": "java",
@@ -1409,6 +1419,7 @@
     "topic": "Вариантность и PECS",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Объясни: почему `List<Integer>` не подтип `List<Number>`, хотя `Integer[]` — подтип `Number[]`?",
     "answer_text": "- Если бы `List<Integer>` был `List<Number>`, через него можно было бы сделать `add(1.5)`, и в список целых попал бы `Double`. Инвариантность закрывает эту дыру на этапе компиляции.\n- Массивы ковариантны (так сделали в Java 1.0, чтобы обобщённые утилиты вроде `sort(Object[])` или `equals(Object[], Object[])` работали с любым массивом ссылок, когда дженериков ещё не было). Дыра та же, но закрыта в рантайме: массив знает тип компонента и при записи бросает `ArrayStoreException`. Цена — проверка типа при каждой записи в массив ссылок.\n- Дженерикам так нельзя: аргументы типа стёрты, `ArrayList<Integer>` в рантайме — просто `ArrayList`, проверить запись нечем. Остаётся только запретить опасное присваивание компилятором.\n- Нужная гибкость выражается явно wildcard'ами: `List<? extends Number>` (читать как `Number`) и `List<? super Integer>` (писать `Integer`).\n- Отсюда же запрет `new List<String>[n]`: массив проверял бы запись, но не видел бы аргумента типа.",
     "explanation": "Связка: массивы — ковариантны и проверяются в рантайме, дженерики — инвариантны и проверяются при компиляции, потому что стёрты (10.1, 10.9).",
@@ -1439,6 +1450,7 @@
     "topic": "Вариантность и PECS",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Объясни PECS на примере `Collections.copy(List<? super T> dest, List<? extends T> src)`. Когда wildcard не нужен вовсе?",
     "answer_text": "- **Producer Extends**: `src` только отдаёт элементы. `? extends T` позволяет передать `List<Integer>` при `T = Number`; читать из него можно как `T`, писать — только `null`.\n- **Consumer Super**: `dest` только принимает. `? super T` позволяет передать `List<Number>` или `List<Object>`; писать в него можно `T`, читать — только как `Object`.\n- Итог: `copy(List<Number>, List<Integer>)` компилируется, а с `List<T>` в обоих местах — нет, общего `T` не найти.\n- То же для функций: `Function<? super T, ? extends R>` в `Stream.map` — функция потребляет `T` и производит `R`. Компаратор потребляет: `Comparator<? super T>`.\n- Wildcard не нужен, если параметр и читают, и пишут как `T` (тогда `List<T>`), и в типе возврата — там он мешает вызывающему.\n- Обратное правило: если `<T>` встречается в сигнатуре один раз, его заменяют на `?`.\n- Ловушка самого `Collections.copy`: он перезаписывает элементы, а не добавляет, и при `dest.size() < src.size()` бросает `IndexOutOfBoundsException`.",
     "explanation": "Правило выбора по роли параметра: только отдаёт — `extends`, только принимает — `super`, и то и другое — точный тип (10.2, 10.25, 10.28, 10.31, 10.32).",
@@ -1465,6 +1477,7 @@
     "topic": "Стирание типов",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Объясни, что такое стирание типов, что из-за него нельзя написать и как это обходят.",
     "answer_text": "- Компилятор проверяет типы и стирает аргументы: `T` заменяется своей первой границей (без границы — `Object`), `List<String>` — на `List`, в местах использования вставляются приведения, для переопределения генерируются bridge-методы. Так сохранили совместимость с кодом до Java 5.\n- Нельзя: `new T()`, `new T[n]`, `T.class`, `o instanceof T` и `o instanceof List<String>`, если `o` — `Object` (с Java 16 `instanceof` с параметризованным типом разрешён, когда приведение безопасно, например из `Collection<String>`), `List<String>.class`, generic-подкласс `Throwable` и `catch (T e)`, два метода `m(List<String>)` и `m(List<Integer>)` — одинаковое стирание.\n- Последствия: `List<String>` и `List<Integer>` — один класс в рантайме; через raw-тип список можно отравить, а `ClassCastException` вылетит далеко от места записи (heap pollution).\n- Обходы: передать `Class<T>` (`isInstance`, `cast`, `getDeclaredConstructor().newInstance()`) или `Supplier<T>`; для вложенных типов — super type token (`new TypeReference<List<User>>() {}`): аргументы типа сохраняются в объявлениях классов, полей и методов (атрибут `Signature`).",
     "explanation": "Ключ: стираются типы объектов и выражений, но не объявления — их читает рефлексия (10.8, 10.9, 10.11–10.17, 10.22).",
@@ -1495,6 +1508,7 @@
     "topic": "Рекурсивные границы",
     "type": "recall",
     "level": "senior",
+    "core": true,
     "question": "Объясни, зачем нужна рекурсивная граница `<T extends Foo<T>>`. Где она встречается в JDK и в обычном коде?",
     "answer_text": "- Параметр означает «мой собственный тип»: подкласс подставляет себя: `enum Color {…}` компилятор превращает в `final class Color extends Enum<Color>` (руками так написать нельзя), и методы базового класса принимают и возвращают точный подтип, а не базовый.\n- `Enum<E extends Enum<E>>`: `compareTo(E)` сравнивает только константы одного перечисления, `getDeclaringClass()` возвращает `Class<E>`, `EnumSet`/`EnumMap` требуют константы одного enum.\n- `<T extends Comparable<? super T>>` в `Collections.max`/`sort`: элементы умеют сравниваться друг с другом (`? super T` — чтобы подошёл `compareTo` из предка).\n- Иерархия builder'ов: `Builder<B extends Builder<B>>` + `abstract B self()` — унаследованные setter'ы возвращают `B`, и цепочка не теряет методы подкласса.\n- Граница — соглашение, не гарантия: `class X extends Builder<PizzaBuilder>` тоже компилируется.",
     "explanation": "Приём называют F-bounded polymorphism (F-ограниченный полиморфизм); в C++ аналог — CRTP (10.4, 10.21, 10.29, 10.30).",
