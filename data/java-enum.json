@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-enum-valueof-01",
-    "num": "6.1",
+    "num": "7.1",
     "block": "java-enum",
     "topic": "Enum",
     "type": "output",
@@ -43,7 +43,7 @@
   },
   {
     "id": "java-core-enum-ordinal-db-01",
-    "num": "6.2",
+    "num": "7.2",
     "block": "java-enum",
     "topic": "Enum",
     "type": "mcq",
@@ -75,7 +75,7 @@
   },
   {
     "id": "java-core-enum-constant-body-01",
-    "num": "6.3",
+    "num": "7.3",
     "block": "java-enum",
     "topic": "Enum",
     "type": "output",
@@ -123,7 +123,7 @@
   },
   {
     "id": "java-core-enum-singleton-recall-01",
-    "num": "6.4",
+    "num": "7.4",
     "block": "java-enum",
     "topic": "Enum",
     "type": "recall",
@@ -149,7 +149,7 @@
   },
   {
     "id": "java-core-enum-values-copy-01",
-    "num": "6.5",
+    "num": "7.5",
     "block": "java-enum",
     "topic": "Enum",
     "type": "tf",
@@ -175,7 +175,7 @@
   },
   {
     "id": "java-core-enum-enummap-01",
-    "num": "6.6",
+    "num": "7.6",
     "block": "java-enum",
     "topic": "Enum",
     "type": "mcq",
@@ -207,7 +207,7 @@
   },
   {
     "id": "java-core-eq-enum-eq-01",
-    "num": "6.7",
+    "num": "7.7",
     "block": "java-enum",
     "topic": "Enum",
     "type": "mcq",

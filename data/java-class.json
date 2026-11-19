@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-class-keyword-01",
-    "num": "8.1",
+    "num": "9.1",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -33,7 +33,7 @@
   },
   {
     "id": "java-core-class-meta-01",
-    "num": "8.2",
+    "num": "9.2",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -65,7 +65,7 @@
   },
   {
     "id": "java-core-class-literal-01",
-    "num": "8.3",
+    "num": "9.3",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -93,7 +93,7 @@
   },
   {
     "id": "java-core-class-getclass-type-01",
-    "num": "8.4",
+    "num": "9.4",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -125,7 +125,7 @@
   },
   {
     "id": "java-core-class-primitive-01",
-    "num": "8.5",
+    "num": "9.5",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "output",
@@ -166,7 +166,7 @@
   },
   {
     "id": "java-core-class-forname-01",
-    "num": "8.6",
+    "num": "9.6",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "output",
@@ -218,7 +218,7 @@
   },
   {
     "id": "java-core-class-getclass-assign-01",
-    "num": "8.7",
+    "num": "9.7",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -250,7 +250,7 @@
   },
   {
     "id": "java-core-class-runtime-class-01",
-    "num": "8.8",
+    "num": "9.8",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "output",
@@ -301,7 +301,7 @@
   },
   {
     "id": "java-core-class-instanceof-null-01",
-    "num": "8.9",
+    "num": "9.9",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "output",
@@ -347,7 +347,7 @@
   },
   {
     "id": "java-core-class-getclass-proxy-01",
-    "num": "8.10",
+    "num": "9.10",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -383,7 +383,7 @@
   },
   {
     "id": "java-core-class-assignable-01",
-    "num": "8.11",
+    "num": "9.11",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "output",
@@ -429,7 +429,7 @@
   },
   {
     "id": "java-core-class-wildcard-01",
-    "num": "8.12",
+    "num": "9.12",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",
@@ -461,7 +461,7 @@
   },
   {
     "id": "java-core-class-raw-01",
-    "num": "8.13",
+    "num": "9.13",
     "block": "java-class",
     "topic": "Class, getClass и instanceof",
     "type": "mcq",

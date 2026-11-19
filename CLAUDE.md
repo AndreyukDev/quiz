@@ -128,7 +128,7 @@
 | 1 | `java-primitives` | примитивы и операторы, double и BigDecimal, сравнение чисел |
 | 2 | `java-boxing` | автораспаковка и NPE, кеш `Integer` |
 | 3 | `java-strings` | пул строк и `==`, конкатенация и методы `String` (сюда же — строки и Unicode из `java-stdlib`) |
-| 4 | `java-equals` | контракт equals/hashCode, `==` для ссылок, null-безопасное сравнение, массивы, compareTo и компараторы |
+| 4 | `java-equals` | контракт equals/hashCode, `==` для ссылок, null-безопасное сравнение, массивы (compareTo и компараторы — с 2026-11-19 в `java-compare`) |
 | 5 | `java-oop` | наследование и интерфейсы, перегрузка, инициализация и константы, вложенные классы, объекты и неизменяемость |
 | 6 | `java-enum` | enum |
 | 7 | `java-exceptions` | исключения и ресурсы |
@@ -146,6 +146,7 @@
 6. `jvm-gc` — ~40.
 Потом — Spring.
 **Раздел 9 `java-generics` добит 2026-11-18** (вне этого списка): 40 вопросов (+22), из них 6 «объясни сам». Покрыта шпаргалка хозяина `/home/verdad/Documents/nuestra/JAVA/Generics Table.md` и сверх неё: wildcard против параметра типа, wildcard в возврате, `var` + diamond, переопределение и стирание, пересечение типов в приведении, generic-конструктор. Сниппеты прогнаны, агент-противник пройден. Раздел закрыт, дальше — `java-streams`.
+**Раздел 5 `java-compare` (Comparable и Comparator) — 2026-11-19**, по просьбе хозяина: тема покрыта целиком, 48 вопросов (4 перенесены из `java-equals`, бывшие 4.16–4.19; 6 «объясни сам»). Темы: контракт `compareTo` и согласованность с `equals`, реализация `compareTo`, Comparator API, сравнение строк (`Collator`), сортировка и коллекции. Раздел вставлен пятым: `java-oop` и всё после него сдвинулись на +1 (`java-generics` теперь 10, `java-collections` 11, `java-streams` 12, `java-modern` 13), ссылки на номера в разборах обновлены. Новые вопросы о сравнении — сюда, а не в `java-equals`/`java-collections`.
 
 **Сводный порядок блоков (2026-11-11):** Java, разделы 1–7 → `spring` → `persistence` (JPA/Hibernate + PostgreSQL: индексы, EXPLAIN, изоляция, блокировки, SQL-ловушки) → `code-review` → `system-design` → `kafka` → `microservices` → `git` (+ GitLab CI) → `docker` (+ K8s) → `c-basics`, `c-core`. Блок `java-new` из исходного плана поглощён разделом 4 `java-modern`. Темы каждого блока — в «Блоки (план)», в уточнении по реальному собесу и ниже.
 

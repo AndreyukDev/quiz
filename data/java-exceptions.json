@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-exceptions-finally-return-01",
-    "num": "7.1",
+    "num": "8.1",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "output",
@@ -63,7 +63,7 @@
   },
   {
     "id": "java-core-exceptions-suppressed-01",
-    "num": "7.2",
+    "num": "8.2",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "output",
@@ -111,7 +111,7 @@
   },
   {
     "id": "java-core-exceptions-static-init-01",
-    "num": "7.3",
+    "num": "8.3",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "output",
@@ -161,7 +161,7 @@
   },
   {
     "id": "java-core-exceptions-precise-rethrow-recall-01",
-    "num": "7.4",
+    "num": "8.4",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "recall",
@@ -198,7 +198,7 @@
   },
   {
     "id": "java-core-exceptions-twr-init-fail-01",
-    "num": "7.5",
+    "num": "8.5",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "output",
@@ -250,7 +250,7 @@
   },
   {
     "id": "java-core-exceptions-checked-lambda-01",
-    "num": "7.6",
+    "num": "8.6",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "mcq",
@@ -294,7 +294,7 @@
   },
   {
     "id": "java-core-exceptions-fast-throw-01",
-    "num": "7.7",
+    "num": "8.7",
     "block": "java-exceptions",
     "topic": "Исключения",
     "type": "mcq",

@@ -1,7 +1,7 @@
 [
   {
     "id": "java-core-oop-ctor-overridable-01",
-    "num": "5.1",
+    "num": "6.1",
     "block": "java-oop",
     "topic": "Наследование и интерфейсы",
     "type": "output",
@@ -51,7 +51,7 @@
   },
   {
     "id": "java-core-oop-default-diamond-01",
-    "num": "5.2",
+    "num": "6.2",
     "block": "java-oop",
     "topic": "Наследование и интерфейсы",
     "type": "mcq",
@@ -91,7 +91,7 @@
   },
   {
     "id": "java-core-oop-static-hiding-01",
-    "num": "5.3",
+    "num": "6.3",
     "block": "java-oop",
     "topic": "Наследование и интерфейсы",
     "type": "output",
@@ -148,7 +148,7 @@
   },
   {
     "id": "java-core-oop-override-rules-01",
-    "num": "5.4",
+    "num": "6.4",
     "block": "java-oop",
     "topic": "Наследование и интерфейсы",
     "type": "mcq",
@@ -180,7 +180,7 @@
   },
   {
     "id": "java-core-oop-private-not-overridden-01",
-    "num": "5.5",
+    "num": "6.5",
     "block": "java-oop",
     "topic": "Наследование и интерфейсы",
     "type": "output",
@@ -237,7 +237,7 @@
   },
   {
     "id": "java-core-ovl-phases-01",
-    "num": "5.6",
+    "num": "6.6",
     "block": "java-oop",
     "topic": "Перегрузка",
     "type": "output",
@@ -286,7 +286,7 @@
   },
   {
     "id": "java-core-ovl-null-01",
-    "num": "5.7",
+    "num": "6.7",
     "block": "java-oop",
     "topic": "Перегрузка",
     "type": "output",
@@ -331,7 +331,7 @@
   },
   {
     "id": "java-core-ovl-list-remove-01",
-    "num": "5.8",
+    "num": "6.8",
     "block": "java-oop",
     "topic": "Перегрузка",
     "type": "output",
@@ -375,7 +375,7 @@
   },
   {
     "id": "java-core-init-order-01",
-    "num": "5.9",
+    "num": "6.9",
     "block": "java-oop",
     "topic": "Инициализация и константы",
     "type": "output",
@@ -431,7 +431,7 @@
   },
   {
     "id": "java-core-init-static-order-01",
-    "num": "5.10",
+    "num": "6.10",
     "block": "java-oop",
     "topic": "Инициализация и константы",
     "type": "output",
@@ -483,7 +483,7 @@
   },
   {
     "id": "java-core-init-constant-trigger-01",
-    "num": "5.11",
+    "num": "6.11",
     "block": "java-oop",
     "topic": "Инициализация и константы",
     "type": "output",
@@ -535,7 +535,7 @@
   },
   {
     "id": "java-core-ovl-constant-inlining-01",
-    "num": "5.12",
+    "num": "6.12",
     "block": "java-oop",
     "topic": "Инициализация и константы",
     "type": "mcq",
@@ -567,7 +567,7 @@
   },
   {
     "id": "java-core-nested-inner-ref-01",
-    "num": "5.13",
+    "num": "6.13",
     "block": "java-oop",
     "topic": "Вложенные классы",
     "type": "mcq",
@@ -615,7 +615,7 @@
   },
   {
     "id": "java-core-nested-this-lambda-01",
-    "num": "5.14",
+    "num": "6.14",
     "block": "java-oop",
     "topic": "Вложенные классы",
     "type": "output",
@@ -670,7 +670,7 @@
   },
   {
     "id": "java-core-nested-double-brace-01",
-    "num": "5.15",
+    "num": "6.15",
     "block": "java-oop",
     "topic": "Вложенные классы",
     "type": "mcq",
@@ -713,7 +713,7 @@
   },
   {
     "id": "java-core-objects-final-not-immutable-01",
-    "num": "5.16",
+    "num": "6.16",
     "block": "java-oop",
     "topic": "Объекты и неизменяемость",
     "type": "output",
@@ -763,7 +763,7 @@
   },
   {
     "id": "java-core-objects-clone-shallow-01",
-    "num": "5.17",
+    "num": "6.17",
     "block": "java-oop",
     "topic": "Объекты и неизменяемость",
     "type": "output",
@@ -808,7 +808,7 @@
   },
   {
     "id": "java-core-objects-serialization-recall-01",
-    "num": "5.18",
+    "num": "6.18",
     "block": "java-oop",
     "topic": "Объекты и неизменяемость",
     "type": "recall",

@@ -1,0 +1,1697 @@
+[
+  {
+    "id": "java-compare-which-recall-01",
+    "num": "5.1",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "recall",
+    "level": "senior",
+    "question": "`Comparable` или `Comparator`: что выбрать и когда?",
+    "answer_text": "- `Comparable` — **натуральный** порядок, ровно один, зашит в сам класс. Его берут по умолчанию `TreeSet`/`TreeMap`, `Collections.sort`, `List.sort(null)`, `sorted()`, `PriorityQueue`. Примеры: `String`, `Integer`, `LocalDate`, `BigDecimal`.\n- Делать класс `Comparable` стоит, только если порядок очевиден всем (числа, даты, версии). Для `User` «натурального» порядка нет: по имени, по возрасту, по дате регистрации — всё это `Comparator`.\n- `Comparator` — внешний порядок: их может быть сколько угодно, работает для чужих классов (которые нельзя изменить), собирается из готовых кусков (`comparing`, `thenComparing`, `reversed`, `nullsFirst`).\n- Натуральный порядок желательно согласовать с `equals` (`compareTo == 0` ⇔ `equals`), иначе `TreeSet` и `HashSet` разойдутся. `BigDecimal` — известное исключение.\n- Запись (`record`) сама `Comparable` не становится. Удобно реализовать `compareTo` через `private static final Comparator`.",
+    "explanation": "Ключ: натуральный порядок один и принадлежит классу; все остальные порядки — компараторы снаружи.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      },
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-core-equals-compareto-consistency-01",
+    "num": "5.2",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "tf",
+    "level": "senior",
+    "question": "Контракт `Comparable` требует: если `a.compareTo(b) == 0`, то `a.equals(b)` обязано быть `true`.",
+    "answer": false,
+    "explanation": "Javadoc: согласованность натурального порядка с `equals` «настоятельно рекомендуется, но не обязательна». Пример из JDK — `BigDecimal` (`1.0` и `1.00`).\nЦена несогласованности: `TreeSet`/`TreeMap` используют только `compareTo` и ведут себя «странно» относительно контрактов `Set`/`Map`, сформулированных через `equals`. Обязательны же антисимметричность знака, транзитивность и правило: из `x.compareTo(y) == 0` следует одинаковый знак сравнения `x` и `y` с любым `z`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-core-equals-bigdecimal-sets-01",
+    "num": "5.3",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var a = new BigDecimal(\"1.0\");",
+        "var b = new BigDecimal(\"1.00\");",
+        "Set<BigDecimal> hash = new HashSet<>(List.of(a, b));",
+        "Set<BigDecimal> tree = new TreeSet<>(List.of(a, b));",
+        "System.out.println(hash.size() + \" \" + tree.size());"
+      ]
+    },
+    "options": [
+      "2 1",
+      "2 2",
+      "1 1",
+      "1 2"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "2 1"
+    },
+    "explanation": "`BigDecimal.equals` учитывает масштаб: `1.0` и `1.00` не равны. `compareTo` сравнивает численно и возвращает 0.\n`HashSet` опирается на `equals`/`hashCode`, `TreeSet` — только на `compareTo` или компаратор. Это хрестоматийный пример натурального порядка, несогласованного с `equals`: `TreeSet` с такими элементами нарушает общий контракт `Set`, сформулированный через `equals`.",
+    "sources": [
+      {
+        "title": "Javadoc: BigDecimal",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html"
+      },
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-compare-contract-not-required-01",
+    "num": "5.4",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Что из перечисленного контракт `Comparable.compareTo` **не** требует?",
+    "options": [
+      "Возвращать ровно `-1`, `0` или `1`",
+      "`sgn(x.compareTo(y)) == -sgn(y.compareTo(x))` для любых `x` и `y`",
+      "Из `x.compareTo(y) > 0` и `y.compareTo(z) > 0` следует `x.compareTo(z) > 0`",
+      "Из `x.compareTo(y) == 0` следует `sgn(x.compareTo(z)) == sgn(y.compareTo(z))` для любого `z`"
+    ],
+    "answer": 0,
+    "explanation": "Контракт говорит только о **знаке** результата. `String.compareTo` возвращает разность символов (`\"Z\".compareTo(\"a\")` — это `-7`), поэтому `compareTo(...) == -1` — баг, сравнивать нужно с нулём: `< 0`, `> 0`.\nОстальные три пункта и есть контракт: антисимметрия (в том числе исключение бросается в обе стороны или ни в одну), транзитивность и согласованность равных элементов с третьим.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html#compareTo(T)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-compareto-null-01",
+    "num": "5.5",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "String s = \"a\";",
+        "System.out.println(s.equals(null));",
+        "System.out.println(s.compareTo(null));"
+      ]
+    },
+    "options": [
+      "`false`, затем `NullPointerException`",
+      "`false`\n`1`",
+      "`false`\n`-1`",
+      "Не скомпилируется: `null` нельзя передать в `compareTo(String)`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "false",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "Javadoc `Comparable`: `null` не экземпляр ни одного класса, и `e.compareTo(null)` должен бросать NPE, хотя `e.equals(null)` возвращает `false`.\nОтсюда NPE в `TreeMap.put(null, …)` при натуральном порядке и при сортировке списка с `null`. Если `null` возможен, компаратор оборачивают в `nullsFirst`/`nullsLast`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-treeset-not-comparable-01",
+    "num": "5.6",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт? (`Point` не реализует `Comparable`)",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record Point(int x, int y) {}",
+        "Set<Point> set = new TreeSet<>();",
+        "set.add(new Point(1, 2));",
+        "System.out.println(set.size());"
+      ]
+    },
+    "options": [
+      "`ClassCastException` на первом же `add`",
+      "`1`",
+      "Не скомпилируется: `Point` не реализует `Comparable`",
+      "`1`; `ClassCastException` будет только на втором `add`, когда появится с кем сравнивать"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.lang.ClassCastException"
+    },
+    "explanation": "У `TreeSet<E>` нет границы `E extends Comparable`: есть конструктор с компаратором, поэтому код компилируется. Без компаратора элемент приводится к `Comparable` в рантайме.\nПадает уже первый элемент: в OpenJDK `TreeMap.put` в пустую карту вызывает `compare(key, key)`, чтобы проверить тип и `null`. Javadoc обещает CCE только при сравнении с имеющимися ключами, так что это поведение реализации, но в JDK 21 оно такое.",
+    "sources": [
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: TreeMap.put",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html#put(K,V)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-treemap-ci-key-01",
+    "num": "5.7",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Map<String, Integer> tree = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);",
+        "tree.put(\"Key\", 1);",
+        "tree.put(\"KEY\", 2);",
+        "Map<String, Integer> hash = new HashMap<>(tree);",
+        "System.out.println(tree + \" \" + tree.containsKey(\"key\") + \" \" + hash.containsKey(\"key\"));"
+      ]
+    },
+    "options": [
+      "{Key=2} true false",
+      "{KEY=2} true false",
+      "{KEY=2, Key=1} false false",
+      "{Key=2} true true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{Key=2} true false"
+    },
+    "explanation": "`TreeMap` ищет ключ только компаратором. Для него `\"KEY\"` равен `\"Key\"`: `put` заменяет **значение**, а ключ остаётся тот, что был вставлен первым. `containsKey(\"key\")` тоже идёт через компаратор — `true`.\nКопия в `HashMap` ищет по `hashCode`/`equals` — `false`. Одни и те же данные отвечают по-разному в зависимости от реализации `Map`: это и есть «нарушение общего контракта Map» из javadoc.",
+    "sources": [
+      {
+        "title": "Javadoc: TreeMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html"
+      },
+      {
+        "title": "Javadoc: String.CASE_INSENSITIVE_ORDER",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#CASE_INSENSITIVE_ORDER"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-set-equals-asymmetry-01",
+    "num": "5.8",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Set<String> tree = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);",
+        "tree.add(\"a\");",
+        "Set<String> hash = new HashSet<>(Set.of(\"A\"));",
+        "System.out.println(tree.equals(hash) + \" \" + hash.equals(tree));"
+      ]
+    },
+    "options": [
+      "true false",
+      "false false",
+      "true true",
+      "false true"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false"
+    },
+    "explanation": "`AbstractSet.equals`: размеры совпадают и `this.containsAll(other)`. `tree.containsAll(hash)` спрашивает `tree.contains(\"A\")` — компаратор без учёта регистра говорит «есть». `hash.contains(\"a\")` смотрит на `equals` — «нет».\nСимметрия `equals` сломана. Так проявляется порядок, не согласованный с `equals`: каждая реализация честно следует своему правилу, а вместе они противоречат друг другу.",
+    "sources": [
+      {
+        "title": "Javadoc: AbstractSet.equals",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/AbstractSet.html#equals(java.lang.Object)"
+      },
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-timsort-contract-01",
+    "num": "5.9",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "mcq",
+    "level": "senior",
+    "question": "В проде `list.sort(cmp)` иногда падает: `IllegalArgumentException: Comparison method violates its general contract!` Что это значит?",
+    "options": [
+      "Компаратор нарушает контракт (например, нетранзитивен или для одной пары отвечает по-разному), и сортировка это заметила",
+      "Список неизменяемый (например, `List.of`)",
+      "Компаратор вернул число, отличное от `-1`, `0` и `1`",
+      "В списке есть `null`, а компаратор его не поддерживает"
+    ],
+    "answer": 0,
+    "explanation": "`List.sort` и `Arrays.sort(Object[])` (TimSort) при слиянии могут обнаружить противоречие в ответах компаратора и бросают IAE — javadoc: «(optional) if the comparator is found to violate the Comparator contract». Обнаружение не гарантировано: чаще результат просто неверно отсортирован.\nТипичные причины: вычитание с переполнением (5.11), сравнение `double` через `<` при `NaN`, поля, которые меняются во время сортировки, случайность или текущее время внутри `compare`. Неизменяемый список даёт `UnsupportedOperationException`, `null` — NPE, любые числа по знаку допустимы.",
+    "sources": [
+      {
+        "title": "Javadoc: List.sort",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: Arrays.sort(T[], Comparator)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(T%5B%5D,java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-inconsistent-recall-01",
+    "num": "5.10",
+    "block": "java-compare",
+    "topic": "Контракт compareTo",
+    "type": "recall",
+    "level": "senior",
+    "question": "Порядок не согласован с `equals` (`compare == 0`, но `equals == false`). Что сломается, а что нет?",
+    "answer_text": "- **Работает**: сортировка списков и массивов, `PriorityQueue`, `binarySearch` по тому же компаратору. Им нужен только порядок.\n- **Ломается** всё, что определяет равенство через `compare`: `TreeSet`/`TreeMap`. Элементы с `compare == 0` считаются одним: второй молча не добавляется (`BigDecimal` `1.0` и `1.00`, 5.3), `contains`/`get`/`remove` находят «чужой» объект.\n- Нарушается контракт `Set`/`Map`, сформулированный через `equals`: `treeSet.equals(hashSet)` несимметричен (5.8), копия `HashSet` → `TreeSet` теряет элементы (`{\"a\", \"A\"}` с `CASE_INSENSITIVE_ORDER` → один).\n- Самый частый баг в проде: `new TreeSet<>(comparingInt(User::getAge))` — пользователи одного возраста схлопываются в одного. Лечится tie-breaker'ом: `.thenComparing(User::getId)`, чтобы `0` означало «тот же объект».\n- Известные несогласованные: `BigDecimal`, `String.CASE_INSENSITIVE_ORDER`, любой компаратор не по всем полям `equals`.",
+    "explanation": "Ключ: деревья не знают `equals` — для них `compare == 0` и есть равенство.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      },
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-core-equals-subtraction-comparator-01",
+    "num": "5.11",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Comparator<Integer> cmp = (a, b) -> a - b;",
+        "System.out.println(cmp.compare(Integer.MIN_VALUE, 1) > 0);"
+      ]
+    },
+    "options": [
+      "true",
+      "false",
+      "ArithmeticException: integer overflow",
+      "Не скомпилируется"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true"
+    },
+    "explanation": "`Integer.MIN_VALUE - 1` переполняется в `Integer.MAX_VALUE`: целочисленная арифметика в Java молча заворачивается, исключения нет. Компаратор «через вычитание» решает, что минимальный `int` больше единицы, и сортировка ломается — вплоть до `IllegalArgumentException: Comparison method violates its general contract!` из TimSort.\nПравильно: `Integer.compare(a, b)`, `Comparator.naturalOrder()` или `Comparator.comparingInt(...)`.",
+    "sources": [
+      {
+        "title": "JLS §15.18.2 Additive Operators for Numeric Types",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18.2"
+      },
+      {
+        "title": "Javadoc: Integer.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-compare-sum-of-compares-01",
+    "num": "5.12",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record P(String name, int age) {}",
+        "Comparator<P> cmp = (a, b) -> a.name().compareTo(b.name()) + Integer.compare(a.age(), b.age());",
+        "Set<P> set = new TreeSet<>(cmp);",
+        "set.add(new P(\"b\", 1));",
+        "set.add(new P(\"a\", 5));",
+        "System.out.println(set.size());"
+      ]
+    },
+    "options": [
+      "1",
+      "2",
+      "0",
+      "ClassCastException: P не Comparable"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "1"
+    },
+    "explanation": "`\"b\".compareTo(\"a\")` = `1`, `Integer.compare(1, 5)` = `-1`, сумма — `0`. `TreeSet` считает элементы равными и второй молча отбрасывает. Сумма результатов — не лексикографическое сравнение.\nПравильно: результат первого ключа, если он не `0`, иначе второго. Короче всего — `Comparator.comparing(P::name).thenComparingInt(P::age)`. Компаратор передан явно, поэтому `Comparable` у `P` не нужен.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.thenComparing",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html#thenComparing(java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-double-nan-sort-01",
+    "num": "5.13",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Double[] a = {1.0, Double.NaN, 0.0, -0.0};",
+        "Arrays.sort(a);",
+        "System.out.println(Arrays.toString(a));"
+      ]
+    },
+    "options": [
+      "[-0.0, 0.0, 1.0, NaN]",
+      "[NaN, -0.0, 0.0, 1.0]",
+      "[0.0, -0.0, 1.0, NaN]",
+      "Порядок не определён: NaN ни с чем не сравним"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[-0.0, 0.0, 1.0, NaN]"
+    },
+    "explanation": "`Double.compareTo` (то же, что `Double.compare`) задаёт полный порядок, в отличие от `<` и `==`: `-0.0` меньше `0.0`, а `NaN` больше всех, включая `+∞`, и равен себе (1.9).\nСамодельный `(x, y) -> x < y ? -1 : x > y ? 1 : 0` считает `NaN` равным любому числу — это нетранзитивно и ломает сортировку. Для `double` всегда `Double.compare` или `comparingDouble`.",
+    "sources": [
+      {
+        "title": "Javadoc: Double.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html#compareTo(java.lang.Double)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-boolean-order-01",
+    "num": "5.14",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(Boolean.compare(true, false) > 0);",
+        "System.out.println(Stream.of(true, false, true).sorted().toList());"
+      ]
+    },
+    "options": [
+      "true\n[false, true, true]",
+      "false\n[true, true, false]",
+      "true\n[true, true, false]",
+      "Не скомпилируется: Boolean не Comparable"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true\n[false, true, true]"
+    },
+    "explanation": "`Boolean` реализует `Comparable`: `false` < `true`. Поэтому `comparing(User::isActive)` ставит **неактивных** первыми.\nАктивных вперёд: `comparing(User::isActive).reversed()` или `comparing(User::isActive, Comparator.reverseOrder())`.",
+    "sources": [
+      {
+        "title": "Javadoc: Boolean.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Boolean.html#compare(boolean,boolean)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-subclass-comparable-01",
+    "num": "5.15",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "public class Main {",
+        "    static class Point implements Comparable<Point> {",
+        "        final int x;",
+        "        Point(int x) { this.x = x; }",
+        "        public int compareTo(Point o) { return Integer.compare(x, o.x); }",
+        "    }",
+        "",
+        "    static class ColorPoint extends Point implements Comparable<ColorPoint> {",
+        "        final String color;",
+        "        ColorPoint(int x, String color) { super(x); this.color = color; }",
+        "        public int compareTo(ColorPoint o) {",
+        "            int c = Integer.compare(x, o.x);",
+        "            return c != 0 ? c : color.compareTo(o.color);",
+        "        }",
+        "    }",
+        "",
+        "    public static void main(String[] args) {",
+        "        System.out.println(new ColorPoint(1, \"red\").compareTo(new ColorPoint(1, \"blue\")) > 0);",
+        "    }",
+        "}"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "`true`",
+      "`false`: вызовется унаследованный `compareTo(Point)`",
+      "`ClassCastException` в bridge-методе"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "Ошибка: `Comparable cannot be inherited with different arguments: <ColorPoint> and <Point>`. Класс не может реализовывать две параметризации одного generic-интерфейса: после стирания обе дали бы один bridge-метод `compareTo(Object)` (JLS §8.1.5).\nНаследник получает порядок предка. Переопределить можно только `compareTo(Point)` — и тогда сравнение `ColorPoint` с обычным `Point` ломает симметрию. Выход — композиция (`ColorPoint` содержит `Point`) или внешний `Comparator`.",
+    "sources": [
+      {
+        "title": "JLS §8.1.5 Superinterfaces",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.5"
+      },
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-enum-compareto-final-01",
+    "num": "5.16",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "tf",
+    "level": "senior",
+    "question": "Enum может переопределить `compareTo`, чтобы константы сортировались, например, по полю `priority`.",
+    "answer": false,
+    "explanation": "`Enum.compareTo` — `final` и сравнивает `ordinal`, то есть порядок объявления констант. Другой порядок — только внешним компаратором: `Comparator.comparingInt(Level::priority)`.\nЛовушка: перестановка констант в исходнике молча меняет сортировку, порядок `TreeMap` и `EnumMap`.",
+    "sources": [
+      {
+        "title": "Javadoc: Enum.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Enum.html#compareTo(E)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-impl-recall-01",
+    "num": "5.17",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему компаратор через вычитание — плохая идея, и как правильно писать `compareTo` по нескольким полям?",
+    "answer_text": "- `a - b` переполняется: `Integer.MIN_VALUE - 1` даёт положительное число, и минимум оказывается «больше» единицы (5.11). Для `long` хуже: `(int) (a - b)` ещё и отрезает старшие биты. Для `double`: `(int) (0.5 - 0.2)` = `0`, а `NaN` всё портит.\n- Правильно: `Integer.compare`, `Long.compare`, `Double.compare`, `Boolean.compare`, `compareTo` для объектов.\n- Несколько полей: вернуть результат первого ключа, если он не `0`, иначе сравнивать следующий. Не складывать результаты (5.12).\n- Удобно: `private static final Comparator<T> ORDER = comparing(T::last).thenComparing(T::first).thenComparingInt(T::age);` и `compareTo` делегирует ему. Компаратор — константа, а не создаётся на каждый вызов.\n- Сравнивать по тем же полям, что и `equals`, тогда порядок с ним согласован. Поля, где бывает `null`, — через `nullsFirst`/`nullsLast`.",
+    "explanation": "Ключ: важен только знак, поэтому сравнивать, а не вычитать; ключи — по очереди, а не суммой.",
+    "sources": [
+      {
+        "title": "Javadoc: Integer.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html#compare(int,int)"
+      },
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-inheritance-recall-01",
+    "num": "5.18",
+    "block": "java-compare",
+    "topic": "Реализация compareTo",
+    "type": "recall",
+    "level": "senior",
+    "question": "Почему наследник, добавивший значимое поле, не может корректно расширить `compareTo` предка?",
+    "answer_text": "- Тип: `ColorPoint extends Point` уже `Comparable<Point>`, объявить `Comparable<ColorPoint>` нельзя (5.15). Остаётся переопределить `compareTo(Point)`.\n- Контракт: если `ColorPoint` сравнивает ещё и цвет, а `Point` о цвете не знает, то `p.compareTo(cp) == 0`, а `cp.compareTo(p)` — не ясно что. Сделать одновременно симметрично и транзитивно невозможно: `red(1)` = `p(1)` = `blue(1)`, но `red(1)` ≠ `blue(1)`.\n- Это та же проблема, что с `equals` в иерархии: нельзя расширить инстанцируемый класс новым значимым полем и сохранить контракт.\n- Решение — композиция: `ColorPoint` содержит `Point` и отдаёт его через `asPoint()`; либо внешние компараторы для каждого случая; либо `final`-класс.",
+    "explanation": "Ключ: как и с `equals`, контракт сравнения не переживает добавление значимого поля в наследнике.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparable",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Comparable.html"
+      },
+      {
+        "title": "JLS §8.1.5 Superinterfaces",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-8.html#jls-8.1.5"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-lambda-reversed-01",
+    "num": "5.19",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> words = new ArrayList<>(List.of(\"bb\", \"a\", \"ccc\"));",
+        "words.sort(Comparator.comparing(s -> s.length()).reversed());",
+        "System.out.println(words);"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "`[ccc, bb, a]`",
+      "`[a, bb, ccc]`",
+      "`ClassCastException`"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "Целевой тип не проходит через цепочку вызовов: `comparing(...)` здесь получатель `.reversed()`, и его тип выводится без контекста. `T` становится `Object`, а у `Object` нет `length()` — `cannot find symbol`. Без `.reversed()` компилируется.\nИсправления: `comparing(String::length)` (точная ссылка на метод несёт тип), `(String s) -> s.length()`, `Comparator.<String, Integer>comparing(...)` или `comparing(s -> s.length(), Comparator.reverseOrder())`.",
+    "sources": [
+      {
+        "title": "JLS §18.5.2 Invocation Type Inference",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-18.html#jls-18.5.2"
+      },
+      {
+        "title": "JLS §15.27.1 Lambda Parameters",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.27.1"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-reversed-whole-chain-01",
+    "num": "5.20",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record U(String city, int age) {}",
+        "var list = new ArrayList<>(List.of(new U(\"B\", 30), new U(\"A\", 20), new U(\"A\", 40)));",
+        "list.sort(Comparator.comparing(U::city).thenComparingInt(U::age).reversed());",
+        "System.out.println(list.stream().map(u -> u.city() + u.age()).toList());"
+      ]
+    },
+    "options": [
+      "[B30, A40, A20]",
+      "[A40, A20, B30]",
+      "[B30, A20, A40]",
+      "[A20, A40, B30]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[B30, A40, A20]"
+    },
+    "explanation": "`reversed()` разворачивает весь компаратор, на котором вызван, — здесь всю цепочку «город, затем возраст». Убывают оба ключа.\nУбывание только по возрасту: `thenComparing(U::age, Comparator.reverseOrder())` или `thenComparing(Comparator.comparingInt(U::age).reversed())`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.reversed",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html#reversed()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-asc-desc-01",
+    "num": "5.21",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`record U(String city, int age)`. Нужно: город по возрастанию, внутри города — возраст по убыванию. Какой компаратор это делает?",
+    "options": [
+      "`comparing(U::city).thenComparing(U::age, Comparator.reverseOrder())`",
+      "`comparing(U::city).thenComparing(U::age).reversed()`",
+      "`comparing(U::city).reversed().thenComparing(U::age)`",
+      "`comparing(U::city).thenComparing(Comparator.reverseOrder())`"
+    ],
+    "answer": 0,
+    "explanation": "`thenComparing(keyExtractor, keyComparator)` сравнивает второй ключ своим компаратором — разворачивается только он.\nВариант 2 разворачивает всю цепочку, и города тоже убывают (5.20). Вариант 3 разворачивает только город, возраст растёт. Вариант 4 не скомпилируется: `reverseOrder()` — порядок самих `U`, а `U` не `Comparable`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.thenComparing",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html#thenComparing(java.util.function.Function,java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-core-equals-comparator-nulls-01",
+    "num": "5.22",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "У части пользователей `getCity()` возвращает `null` (имя — всегда не `null`). Какой компаратор отсортирует по городу (`null` в конце), а внутри города — по имени, без NPE?",
+    "options": [
+      "`Comparator.comparing(User::getCity, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(User::getName)`",
+      "`Comparator.nullsLast(Comparator.comparing(User::getCity)).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).thenComparing(User::getName)`",
+      "`Comparator.comparing(User::getCity).reversed().thenComparing(User::getName)`"
+    ],
+    "answer": 0,
+    "explanation": "`nullsLast` оборачивает компаратор и обрабатывает `null` **сравниваемых объектов**. В варианте `nullsLast(comparing(User::getCity))` сами `User` не null — null появляется уже внутри, при сравнении городов, и падает NPE. Правильно — передать null-безопасный компаратор вторым аргументом в `comparing`, чтобы он сравнивал извлечённые ключи.\nВарианты без `nullsLast` бросают NPE на первом же `null`-городе; `reversed()` этого не меняет.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.comparing / nullsLast",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-09"
+    }
+  },
+  {
+    "id": "java-compare-sort-null-npe-01",
+    "num": "5.23",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(Arrays.asList(\"b\", null, \"a\"));",
+        "list.sort(Comparator.nullsFirst(Comparator.naturalOrder()));",
+        "System.out.println(list);",
+        "list.sort(null);"
+      ]
+    },
+    "options": [
+      "`[null, a, b]`, затем `NullPointerException`",
+      "`[null, a, b]`, и больше ничего",
+      "`[a, b, null]`, затем `NullPointerException`",
+      "`NullPointerException` на первом `sort`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[null, a, b]",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "`nullsFirst` оборачивает компаратор: `null` идут первыми, остальное сравнивает вложенный `naturalOrder()`.\n`list.sort(null)` значит «натуральный порядок», а не «без компаратора» и не «null-безопасно». Натуральный порядок вызывает `compareTo` и на `null` бросает NPE (5.5).",
+    "sources": [
+      {
+        "title": "Javadoc: List.sort",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: Comparator.nullsFirst",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html#nullsFirst(java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-objects-compare-01",
+    "num": "5.24",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "Comparator<String> natural = Comparator.naturalOrder();",
+        "System.out.println(Objects.compare(null, null, natural));",
+        "System.out.println(Objects.compare(\"a\", null, natural));"
+      ]
+    },
+    "options": [
+      "`0`, затем `NullPointerException`",
+      "`0`\n`1`",
+      "`NullPointerException` на первой строке",
+      "`0`\n`-1`"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "0",
+      "exception": "java.lang.NullPointerException"
+    },
+    "explanation": "`Objects.compare(a, b, c)` возвращает `0`, если `a == b` (одна ссылка, в том числе оба `null`), иначе просто `c.compare(a, b)`. Javadoc: NPE возможен в зависимости от компаратора.\nВ отличие от `Objects.equals`, это не null-безопасное сравнение. Для `null` нужен `nullsFirst`/`nullsLast`.",
+    "sources": [
+      {
+        "title": "Javadoc: Objects.compare",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Objects.html#compare(T,T,java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-comparing-int-boxing-01",
+    "num": "5.25",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`getAge()` возвращает `int`. Чем `Comparator.comparingInt(User::getAge)` лучше `Comparator.comparing(User::getAge)`?",
+    "options": [
+      "Не упаковывает `int` в `Integer` при каждом сравнении",
+      "`comparing` сравнит `Integer` через `==` и ошибётся на значениях больше 127",
+      "`comparingInt` защищён от переполнения, а `comparing` вычитает значения",
+      "`comparing` с примитивным ключом не скомпилируется"
+    ],
+    "answer": 0,
+    "explanation": "Оба дают верный порядок. `comparing` принимает `Function<T, U extends Comparable>`: ключ упаковывается в `Integer` и сравнивается `compareTo` — при сортировке это `n log n` упаковок (с аллокацией за пределами кеша −128…127, если JIT её не уберёт).\n`comparingInt` берёт `ToIntFunction` и сравнивает `Integer.compare` без упаковки. Так же устроены `comparingLong`/`comparingDouble` и `thenComparingInt`/`Long`/`Double`.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator.comparingInt",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html#comparingInt(java.util.function.ToIntFunction)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-negate-reverse-01",
+    "num": "5.26",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "tf",
+    "level": "senior",
+    "question": "Чтобы развернуть порядок вручную, можно вернуть `-cmp.compare(a, b)`: это всегда то же самое, что `cmp.compare(b, a)`.",
+    "answer": false,
+    "explanation": "Контракт разрешает вернуть любое отрицательное число, в том числе `Integer.MIN_VALUE`, а `-Integer.MIN_VALUE == Integer.MIN_VALUE`: знак не меняется, порядок не разворачивается.\nРазворачивают перестановкой аргументов. Так и сделан `reversed()` в JDK: `Collections.reverseOrder(cmp)` вызывает `cmp.compare(b, a)`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.reverseOrder(Comparator)",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#reverseOrder(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-entry-reversed-01",
+    "num": "5.27",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`map` — `Map<String, Integer>`; записи нужно отсортировать по значению по убыванию. Какая строка **не** скомпилируется?",
+    "options": [
+      "`map.entrySet().stream().sorted(Map.Entry.comparingByValue().reversed())`",
+      "`map.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))`",
+      "`map.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())`",
+      "`map.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))`"
+    ],
+    "answer": 0,
+    "explanation": "Тот же механизм, что в 5.19: `comparingByValue()` — получатель `.reversed()`, его типы выводятся без целевого типа, и `K` становится `Object`. Получается `Comparator<Entry<Object, V>>`, а `sorted` ждёт `Comparator<? super Entry<String, Integer>>`.\nВ остальных вариантах либо целевой тип доходит до вызова (он аргумент метода), либо типы указаны явно.",
+    "sources": [
+      {
+        "title": "Javadoc: Map.Entry.comparingByValue",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.Entry.html#comparingByValue()"
+      },
+      {
+        "title": "JLS §18.5.2 Invocation Type Inference",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-18.html#jls-18.5.2"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-functional-equals-01",
+    "num": "5.28",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "tf",
+    "level": "senior",
+    "question": "`Comparator` — функциональный интерфейс, хотя в нём объявлены два абстрактных метода: `compare` и `equals`.",
+    "answer": true,
+    "explanation": "JLS §9.8: абстрактные методы с сигнатурой публичного метода `Object` не считаются — любая реализация уже получает их от `Object`. Остаётся один `compare`, поэтому `@FunctionalInterface` на `Comparator` законен и лямбда подходит.\nВсе остальные методы `Comparator` — `default` или `static`.",
+    "sources": [
+      {
+        "title": "JLS §9.8 Functional Interfaces",
+        "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.8"
+      },
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-treemap-serializable-01",
+    "num": "5.29",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "TreeMap<String, Integer> map = new TreeMap<>((a, b) -> b.compareTo(a));",
+        "map.put(\"a\", 1);",
+        "try (var out = new ObjectOutputStream(new ByteArrayOutputStream())) {",
+        "    out.writeObject(map);",
+        "}",
+        "System.out.println(\"ok\");"
+      ]
+    },
+    "options": [
+      "`NotSerializableException`",
+      "`ok`",
+      "Не скомпилируется: лямбда не `Serializable`",
+      "`ok`, но после десериализации порядок станет натуральным"
+    ],
+    "answer": 0,
+    "expect": {
+      "exception": "java.io.NotSerializableException"
+    },
+    "explanation": "`TreeMap` сериализует свой компаратор, а обычная лямбда не `Serializable`. Javadoc `Comparator` прямо советует делать компараторы сериализуемыми, если они живут в `TreeSet`/`TreeMap`.\n`Comparator.reverseOrder()`, `String.CASE_INSENSITIVE_ORDER`, `nullsFirst(naturalOrder())` сериализуемы. `comparing(...)` — только если сериализуем сам извлекатель ключа: `comparing(U::city)` тоже даст `NotSerializableException`. Для своей лямбды — приведение к `(Comparator<String> & Serializable)` (10.35). Всплывает при Java-сериализации: HTTP-сессия, распределённый кеш.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      },
+      {
+        "title": "Javadoc: TreeMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-employee-recall-01",
+    "num": "5.30",
+    "block": "java-compare",
+    "topic": "Comparator API",
+    "type": "recall",
+    "level": "senior",
+    "question": "Напиши компаратор для `Employee`: отдел (`String getDepartment()`, бывает `null`, такие — в конце) по алфавиту, внутри — зарплата (`long getSalary()`) по убыванию, при равенстве — `long getId()`.",
+    "answer_text": "`Comparator.comparing(Employee::getDepartment, Comparator.nullsLast(Comparator.naturalOrder()))`\n`    .thenComparing(Comparator.comparingLong(Employee::getSalary).reversed())`\n`    .thenComparingLong(Employee::getId)`\n\n- `nullsLast` — вторым аргументом `comparing`: `null` бывает у ключа, а не у самого `Employee` (5.22).\n- `reversed()` — только у вложенного компаратора зарплаты, иначе развернётся вся цепочка (5.20).\n- `comparingLong`/`thenComparingLong` — без упаковки.\n- `id` в конце делает порядок полным: `0` только у одного и того же сотрудника, такой компаратор безопасен для `TreeSet`.\n- Хранить в `static final` поле, а не собирать на каждый вызов.",
+    "explanation": "Ключ: null-обработка и разворот — на уровне конкретного ключа, а не всей цепочки; в конце — уникальный tie-breaker.",
+    "sources": [
+      {
+        "title": "Javadoc: Comparator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Comparator.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-string-compareto-values-01",
+    "num": "5.31",
+    "block": "java-compare",
+    "topic": "Сравнение строк",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "System.out.println(\"Z\".compareTo(\"a\"));",
+        "System.out.println(\"apple\".compareTo(\"apricot\"));",
+        "System.out.println(\"ab\".compareTo(\"abcd\"));"
+      ]
+    },
+    "options": [
+      "-7\n-2\n-2",
+      "-1\n-1\n-1",
+      "25\n-2\n-2",
+      "-7\n-2\n-1"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "-7\n-2\n-2"
+    },
+    "explanation": "Javadoc `String.compareTo` задаёт результат точно: разность символов в первой несовпадающей позиции (`'Z'` 90 − `'a'` 97 = −7; `'p'` − `'r'` = −2), а если одна строка — префикс другой, разность длин (2 − 4).\nСравниваются коды UTF-16, а не алфавит: все заглавные латинские раньше строчных, `ё` (U+0451) после `я` (U+044F). И поэтому результат сравнивают с нулём, а не с `-1`.",
+    "sources": [
+      {
+        "title": "Javadoc: String.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#compareTo(java.lang.String)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-case-insensitive-stable-01",
+    "num": "5.32",
+    "block": "java-compare",
+    "topic": "Сравнение строк",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"b\", \"B\", \"a\", \"A\"));",
+        "list.sort(null);",
+        "System.out.print(list + \" \");",
+        "list = new ArrayList<>(List.of(\"b\", \"B\", \"a\", \"A\"));",
+        "list.sort(String.CASE_INSENSITIVE_ORDER);",
+        "System.out.println(list);"
+      ]
+    },
+    "options": [
+      "[A, B, a, b] [a, A, b, B]",
+      "[A, B, a, b] [A, a, B, b]",
+      "[a, A, b, B] [a, A, b, B]",
+      "[A, a, B, b] [A, a, B, b]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[A, B, a, b] [a, A, b, B]"
+    },
+    "explanation": "Натуральный порядок сравнивает коды символов: все заглавные (65–90) раньше строчных (97–122).\nДля `CASE_INSENSITIVE_ORDER` `\"a\"` и `\"A\"` равны, а `List.sort` стабилен — равные остаются в исходном порядке: `a` шла раньше `A`. Детерминированный порядок независимо от входа: `CASE_INSENSITIVE_ORDER.thenComparing(Comparator.naturalOrder())` → `[A, a, B, b]`.",
+    "sources": [
+      {
+        "title": "Javadoc: String.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#compareTo(java.lang.String)"
+      },
+      {
+        "title": "Javadoc: List.sort",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-collator-ru-01",
+    "num": "5.33",
+    "block": "java-compare",
+    "topic": "Сравнение строк",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> words = List.of(\"яблоко\", \"ёж\", \"еда\");",
+        "System.out.println(words.stream().sorted().toList());",
+        "var ru = java.text.Collator.getInstance(Locale.forLanguageTag(\"ru\"));",
+        "System.out.println(words.stream().sorted(ru).toList());"
+      ]
+    },
+    "options": [
+      "[еда, яблоко, ёж]\n[еда, ёж, яблоко]",
+      "[еда, ёж, яблоко]\n[еда, ёж, яблоко]",
+      "[ёж, еда, яблоко]\n[еда, ёж, яблоко]",
+      "[еда, яблоко, ёж]\n[еда, яблоко, ёж]"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[еда, яблоко, ёж]\n[еда, ёж, яблоко]"
+    },
+    "explanation": "`String.compareTo` сравнивает коды UTF-16: `ё` — U+0451, она дальше `я` (U+044F), и `ёж` уходит в конец.\n`Collator` сравнивает по правилам языка: `ё` — вариант `е`. Для имён, городов и прочего, что видит пользователь, — `Collator.getInstance(locale)`; он реализует `Comparator<Object>` и подходит в `sorted`/`sort`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/Collator.html"
+      },
+      {
+        "title": "Javadoc: String.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#compareTo(java.lang.String)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-case-insensitive-locale-01",
+    "num": "5.34",
+    "block": "java-compare",
+    "topic": "Сравнение строк",
+    "type": "tf",
+    "level": "senior",
+    "question": "`String.CASE_INSENSITIVE_ORDER` учитывает локаль, поэтому подходит для сортировки имён, которые видит пользователь.",
+    "answer": false,
+    "explanation": "Javadoc прямо: компаратор **не** учитывает локаль и для некоторых языков даёт неудовлетворительный порядок; для сравнения с учётом языка — `Collator`. Он сравнивает посимвольно после `Character.toUpperCase`/`toLowerCase`.\nГодится для идентификаторов, ключей, заголовков HTTP; для UI — `Collator` (5.33).",
+    "sources": [
+      {
+        "title": "Javadoc: String.CASE_INSENSITIVE_ORDER",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#CASE_INSENSITIVE_ORDER"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-ui-sort-recall-01",
+    "num": "5.35",
+    "block": "java-compare",
+    "topic": "Сравнение строк",
+    "type": "recall",
+    "level": "senior",
+    "question": "Как отсортировать список имён для показа пользователю (кириллица и латиница, без учёта регистра)? Почему не `compareTo`?",
+    "answer_text": "- `compareTo` сравнивает коды UTF-16: заглавные раньше строчных, `ё` после `я`, буквы с диакритикой (`é`) после `z`. Для людей это не алфавит.\n- `CASE_INSENSITIVE_ORDER` убирает только регистр, правил языка не знает.\n- Правильно — `Collator.getInstance(locale)`. Сила сравнения: `setStrength(Collator.PRIMARY)` — без учёта регистра и диакритики, `SECONDARY` — различает диакритику, `TERTIARY` (по умолчанию) — ещё и регистр.\n- Для больших списков — `CollationKey` (`collator.getCollationKey(s)`): ключ считается один раз на элемент, а не при каждом сравнении.\n- `null` — через `nullsLast(collator)`. Если сортирует БД, то порядок задаёт её collation, а не Java.",
+    "explanation": "Ключ: `compareTo` — порядок кодов, `Collator` — порядок языка.",
+    "sources": [
+      {
+        "title": "Javadoc: Collator",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/Collator.html"
+      },
+      {
+        "title": "Javadoc: CollationKey",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/CollationKey.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-compile-time-bound-01",
+    "num": "5.36",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "mcq",
+    "level": "senior",
+    "question": "`record Point(int x, int y)` не реализует `Comparable`, `points` — `List<Point>`. Какая строка **не** скомпилируется?",
+    "options": [
+      "`Collections.sort(points);`",
+      "`points.sort(null);`",
+      "`Set<Point> set = new TreeSet<>();`",
+      "`points.stream().sorted().toList();`"
+    ],
+    "answer": 0,
+    "explanation": "`Collections.sort` объявлен как `<T extends Comparable<? super T>> void sort(List<T>)` — граница проверяется при компиляции.\nУ остальных границы нет, и ошибка — `ClassCastException` в рантайме: `List.sort(null)` и `sorted()` — при сортировке, `TreeSet` — на первом `add` (в OpenJDK, 5.6).",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.sort",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#sort(java.util.List)"
+      },
+      {
+        "title": "Javadoc: Stream.sorted",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#sorted()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-sort-stable-01",
+    "num": "5.37",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Заказы уже отсортированы по дате. Вызываем `orders.sort(Comparator.comparing(Order::status))`. Что будет с порядком по дате внутри одного статуса?",
+    "options": [
+      "Сохранится: `List.sort` гарантированно стабилен",
+      "Не гарантирован: TimSort — нестабильная сортировка",
+      "Сохранится только для `ArrayList`, у `LinkedList` своя сортировка",
+      "Сохранится, только если элементов меньше 32 (тогда работает сортировка вставками)"
+    ],
+    "answer": 0,
+    "explanation": "Javadoc `List.sort`, `Collections.sort`, `Arrays.sort(Object[])`: «This sort is guaranteed to be stable» — равные элементы не меняются местами. `List.sort` по умолчанию копирует список в массив и сортирует его, так что и для `LinkedList` то же.\n`Arrays.sort(int[])` — dual-pivot quicksort, нестабилен, но равные примитивы неразличимы. `Stream.sorted()` стабилен только для упорядоченного стрима. Явный `thenComparing(Order::date)` всё равно понятнее: не зависит от того, в каком порядке пришли данные.",
+    "sources": [
+      {
+        "title": "Javadoc: List.sort",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html#sort(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: Stream.sorted",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#sorted()"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-binary-search-other-order-01",
+    "num": "5.38",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> list = new ArrayList<>(List.of(\"b\", \"C\", \"a\"));",
+        "list.sort(String.CASE_INSENSITIVE_ORDER);",
+        "System.out.println(list);",
+        "System.out.println(Collections.binarySearch(list, \"C\"));",
+        "System.out.println(Collections.binarySearch(list, \"C\", String.CASE_INSENSITIVE_ORDER));"
+      ]
+    },
+    "options": [
+      "[a, b, C]\n-1\n2",
+      "[a, b, C]\n2\n2",
+      "[C, a, b]\n0\n2",
+      "[a, b, C]\n-4\n2"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[a, b, C]\n-1\n2"
+    },
+    "explanation": "`binarySearch` требует, чтобы список был отсортирован **тем же** порядком; иначе, по javadoc, результат не определён. Здесь натуральный порядок видит `\"b\" > \"C\"` (98 > 67), уходит влево и не находит элемент, который в списке есть: `-1`.\nС тем же компаратором — индекс `2`. Так же устроены `Arrays.binarySearch` и поиск в `TreeMap`: искать можно только тем порядком, которым строили.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.binarySearch",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#binarySearch(java.util.List,T,java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-mutated-treeset-01",
+    "num": "5.39",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var b = new StringBuilder(\"b\");",
+        "var d = new StringBuilder(\"d\");",
+        "TreeSet<StringBuilder> set = new TreeSet<>();",
+        "set.add(b);",
+        "set.add(d);",
+        "b.setCharAt(0, 'e');",
+        "System.out.println(set + \" \" + set.contains(d) + \" \" + set.contains(b));"
+      ]
+    },
+    "options": [
+      "[e, d] false true",
+      "[d, e] true true",
+      "[e, d] true true",
+      "[e, d] true false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "[e, d] false true"
+    },
+    "explanation": "`StringBuilder` реализует `Comparable` (с Java 11). `TreeSet` раскладывает элемент по дереву в момент вставки: `b` в корне, `d` справа. После изменения корень стал `\"e\"`, а дерево об этом не знает.\nОбход показывает оба элемента в старом порядке. `contains(d)` сравнивает `\"d\"` с корнем `\"e\"`, идёт влево и не находит элемент, который в наборе есть. Поля, по которым сравнивают, у ключей менять нельзя: удалить, изменить, вставить заново (с `hashCode` в `HashMap` — то же самое).",
+    "sources": [
+      {
+        "title": "Javadoc: TreeSet",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+      },
+      {
+        "title": "Javadoc: StringBuilder.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StringBuilder.html#compareTo(java.lang.StringBuilder)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-treemap-null-key-01",
+    "num": "5.40",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "tf",
+    "level": "senior",
+    "question": "`TreeMap` в принципе не допускает ключ `null`.",
+    "answer": false,
+    "explanation": "При натуральном порядке `put(null, …)` бросает NPE: `compareTo(null)` (5.5). Но с компаратором, который умеет `null`, ключ `null` допустим: `new TreeMap<String, V>(Comparator.nullsFirst(Comparator.naturalOrder()))`.\nJavadoc `TreeMap.put`: NPE — если ключ `null` и карта использует натуральный порядок или её компаратор не допускает `null`.",
+    "sources": [
+      {
+        "title": "Javadoc: TreeMap.put",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html#put(K,V)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-top-k-heap-01",
+    "num": "5.41",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "mcq",
+    "level": "senior",
+    "question": "Из потока на миллиарды чисел нужно держать 100 наибольших. Какой подход правильный?",
+    "options": [
+      "`PriorityQueue` в натуральном порядке (min-куча): `offer`, и если размер стал 101 — `poll()`",
+      "`PriorityQueue` с `Comparator.reverseOrder()` (max-куча): `offer`, и если размер стал 101 — `poll()`",
+      "`TreeSet` в натуральном порядке: `add`, и если размер стал 101 — `pollFirst()`",
+      "Копить всё в `ArrayList`, в конце `sort` и взять последние 100"
+    ],
+    "answer": 0,
+    "explanation": "В min-куче корень — наименьший из кандидатов; `poll()` выкидывает именно его, и остаются 100 наибольших. Время O(n log k), память O(k).\nMax-куча выкидывала бы наибольший и оставила 100 наименьших. `TreeSet` теряет дубликаты: равные числа для него один элемент. Полная сортировка — O(n log n) и память на все n.",
+    "sources": [
+      {
+        "title": "Javadoc: PriorityQueue",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/PriorityQueue.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-hashmap-comparable-keys-01",
+    "num": "5.42",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "tf",
+    "level": "senior",
+    "question": "Если у ключей `HashMap` много коллизий хеша, то реализация `Comparable` у класса ключа может ускорить поиск.",
+    "answer": true,
+    "explanation": "С Java 8 большой бакет превращается в красно-чёрное дерево (11.1). Узлы упорядочены по хешу, при равных хешах — через `compareTo`, если ключи одного класса и этот класс сам объявляет `implements Comparable<себя>` (наследник такого класса не подходит). Тогда поиск — O(log n).\nБез `Comparable` дерево не знает, в какую ветку идти при равных хешах, и обходит обе — почти как список. Javadoc `HashMap`: «when keys are Comparable, this class may use comparison order among keys to help break ties».",
+    "sources": [
+      {
+        "title": "Javadoc: HashMap",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-arrays-compare-01",
+    "num": "5.43",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[] a = {1, 3};",
+        "int[] b = {1, 2, 9};",
+        "int[] c = {1};",
+        "System.out.println(Arrays.compare(a, b) > 0);",
+        "System.out.println(Arrays.compare(c, b) < 0);",
+        "System.out.println(Arrays.compare(null, c) < 0);"
+      ]
+    },
+    "options": [
+      "true\ntrue\ntrue",
+      "false\ntrue\ntrue",
+      "true\ntrue\nNullPointerException",
+      "true\nfalse\ntrue"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true\ntrue\ntrue"
+    },
+    "explanation": "`Arrays.compare` (Java 9) сравнивает лексикографически, как строки: по первому различию (`3 > 2`, длина не важна), а если один массив — префикс другого, короткий меньше. `null` меньше любого массива, два `null` равны.\nМассивы не `Comparable`, а `Arrays::compare` — готовый `Comparator<int[]>`: `new TreeSet<int[]>(Arrays::compare)`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays.compare(int[], int[])",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#compare(int%5B%5D,int%5B%5D)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-int-array-desc-01",
+    "num": "5.44",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "int[] a = {3, 1, 2};",
+        "Arrays.sort(a, Collections.reverseOrder());",
+        "System.out.println(Arrays.toString(a));"
+      ]
+    },
+    "options": [
+      "Не скомпилируется",
+      "`[3, 2, 1]`",
+      "`[1, 2, 3]`",
+      "`ClassCastException`"
+    ],
+    "answer": 0,
+    "expect": {
+      "compile_error": true
+    },
+    "explanation": "`Arrays.sort(T[], Comparator<? super T>)` работает только с массивами ссылок: `int[]` не `T[]`, а для примитивных массивов перегрузок с компаратором нет.\nВарианты: `Arrays.sort(a)` и развернуть массив на месте; `Integer[]` с `Collections.reverseOrder()`; `Arrays.stream(a).boxed().sorted(Comparator.reverseOrder()).mapToInt(Integer::intValue).toArray()` (с упаковкой). Трюк «сменить знак, отсортировать, вернуть знак» ломается на `Integer.MIN_VALUE`.",
+    "sources": [
+      {
+        "title": "Javadoc: Arrays",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-zoned-compareto-01",
+    "num": "5.45",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "var utc = java.time.ZonedDateTime.of(2026, 1, 1, 12, 0, 0, 0, java.time.ZoneOffset.UTC);",
+        "var msk = utc.withZoneSameInstant(java.time.ZoneId.of(\"Europe/Moscow\"));",
+        "System.out.println(utc.isEqual(msk) + \" \" + (utc.compareTo(msk) == 0) + \" \" + utc.equals(msk));"
+      ]
+    },
+    "options": [
+      "true false false",
+      "true true false",
+      "true true true",
+      "false false false"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "true false false"
+    },
+    "explanation": "Это один момент времени, поэтому `isEqual` — `true`. Но `compareTo` у `ZonedDateTime` (и `OffsetDateTime`) сравнивает сначала момент, а при равенстве — локальное время и зону, то есть `0` только при полном совпадении, как и `equals`.\nЗначит, `TreeSet<ZonedDateTime>` хранит один момент в разных зонах как разные элементы. Если важен именно момент — сравнивать `Instant` (`toInstant()`) или `Comparator.comparing(ZonedDateTime::toInstant)`, а «тот же момент» проверять `isEqual`.",
+    "sources": [
+      {
+        "title": "Javadoc: ZonedDateTime",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/ZonedDateTime.html"
+      },
+      {
+        "title": "Javadoc: ChronoZonedDateTime.compareTo",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#compareTo(java.time.chrono.ChronoZonedDateTime)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-max-empty-01",
+    "num": "5.46",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что произойдёт?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "List<String> empty = List.of();",
+        "System.out.println(empty.stream().max(Comparator.naturalOrder()));",
+        "System.out.println(Collections.max(empty));"
+      ]
+    },
+    "options": [
+      "`Optional.empty`, затем `NoSuchElementException`",
+      "`Optional.empty`\n`null`",
+      "`NoSuchElementException` на первой строке",
+      "Не скомпилируется: `Collections.max` требует компаратор"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "Optional.empty",
+      "exception": "java.util.NoSuchElementException"
+    },
+    "explanation": "`Stream.max`/`min` возвращают `Optional`: пустой стрим — нормальный случай. `Collections.max`/`min` возвращают сам элемент и на пустой коллекции бросают `NoSuchElementException`.\nБез компаратора `Collections.max` объявлен как `<T extends Object & Comparable<? super T>>` (10.21), поэтому для `String` компилируется, а для не-`Comparable` типа — нет.",
+    "sources": [
+      {
+        "title": "Javadoc: Collections.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Collections.html#max(java.util.Collection)"
+      },
+      {
+        "title": "Javadoc: Stream.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#max(java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-max-ties-01",
+    "num": "5.47",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "tf",
+    "level": "senior",
+    "question": "Если наибольших элементов несколько, `Stream.max(cmp)` по спецификации возвращает первый из них в порядке стрима.",
+    "answer": false,
+    "explanation": "Javadoc `Stream.max` и `BinaryOperator.maxBy` говорят только «наибольший по компаратору» и не обещают, какой из равных. В OpenJDK `maxBy` при равенстве оставляет левый аргумент, поэтому последовательный стрим даёт первый — но это деталь реализации.\nЕсли важно, какой из равных выбрать (например, самый ранний заказ с максимальной суммой), — добавить tie-breaker в компаратор: `comparingLong(Order::amount).thenComparing(Order::createdAt, Comparator.reverseOrder())`.",
+    "sources": [
+      {
+        "title": "Javadoc: Stream.max",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#max(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: BinaryOperator.maxBy",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/function/BinaryOperator.html#maxBy(java.util.Comparator)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  },
+  {
+    "id": "java-compare-grouping-maxby-01",
+    "num": "5.48",
+    "block": "java-compare",
+    "topic": "Сортировка и коллекции",
+    "type": "output",
+    "level": "senior",
+    "question": "Что напечатает код?",
+    "code": {
+      "lang": "java",
+      "text": [
+        "record E(String dept, int salary) {}",
+        "var staff = List.of(new E(\"a\", 10), new E(\"a\", 30), new E(\"b\", 20));",
+        "var top = staff.stream().collect(Collectors.groupingBy(",
+        "        E::dept, TreeMap::new, Collectors.maxBy(Comparator.comparingInt(E::salary))));",
+        "System.out.println(top);"
+      ]
+    },
+    "options": [
+      "{a=Optional[E[dept=a, salary=30]], b=Optional[E[dept=b, salary=20]]}",
+      "{a=E[dept=a, salary=30], b=E[dept=b, salary=20]}",
+      "{a=30, b=20}",
+      "{a=Optional[30], b=Optional[20]}"
+    ],
+    "answer": 0,
+    "expect": {
+      "stdout": "{a=Optional[E[dept=a, salary=30]], b=Optional[E[dept=b, salary=20]]}"
+    },
+    "explanation": "`Collectors.maxBy` возвращает `Optional`, даже внутри `groupingBy`, где группа не бывает пустой. В значениях карты — `Optional<E>`, и дальше по коду появляются лишние `.get()`.\nБез `Optional`: `collectingAndThen(maxBy(cmp), Optional::get)` или `toMap(E::dept, e -> e, BinaryOperator.maxBy(cmp), TreeMap::new)`.",
+    "sources": [
+      {
+        "title": "Javadoc: Collectors.maxBy",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#maxBy(java.util.Comparator)"
+      },
+      {
+        "title": "Javadoc: Collectors.collectingAndThen",
+        "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#collectingAndThen(java.util.stream.Collector,java.util.function.Function)"
+      }
+    ],
+    "java_version": "21",
+    "verified": {
+      "by": "adversary-agent",
+      "at": "2026-11-19"
+    }
+  }
+]
